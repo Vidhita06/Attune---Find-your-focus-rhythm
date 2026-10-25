@@ -5,3 +5,6 @@ local.properties
 .idea/
 
 *.hprof
+
+__pycache__/
+*.pyc

@@ -14,7 +14,8 @@ val CardBorder = Color(0xFFE6E2F0)
 
 val HighRisk = Color(0xFFC0504A)
 val MedRisk = Color(0xFFB7791F)
-val LowRisk = Color(0xFF3F8F6E)
+val LowRisk = Color(0xFF2E8F5E)
+val UnknownRisk = Color(0xFF6E7391)
 val DemoAmber = Color(0xFF9A6514)
 val DemoAmberBg = Color(0xFFFFF3DD)
 

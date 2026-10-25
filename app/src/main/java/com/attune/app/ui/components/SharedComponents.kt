@@ -1,4 +1,4 @@
-﻿package com.attune.app.ui.components
+package com.attune.app.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -103,7 +104,24 @@ val LocalSnackbar = staticCompositionLocalOf<SnackbarHostState> { error("No Snac
 fun riskColor(r: RiskLevel) = when (r) { RiskLevel.HIGH -> HighRisk; RiskLevel.MED -> MedRisk; RiskLevel.LOW -> LowRisk }
 fun riskLabel(r: RiskLevel) = when (r) { RiskLevel.HIGH -> "High"; RiskLevel.MED -> "Medium"; RiskLevel.LOW -> "Low" }
 
-@Composable fun RiskChip(risk: RiskLevel, modifier: Modifier = Modifier) = Pill("${riskLabel(risk)} distraction risk", riskColor(risk), modifier = modifier)
+@Composable fun RiskChip(risk: RiskLevel, modifier: Modifier = Modifier) = Pill("${riskLabel(risk)} time cost", riskColor(risk), modifier = modifier)
+
+/** Focus risk from the decision engine: LOW / MEDIUM / HIGH / UNKNOWN. Always shown with an icon and a word, never colour alone. */
+fun focusRiskColor(r: String?) = when (r) { "HIGH" -> HighRisk; "MEDIUM" -> MedRisk; "LOW" -> LowRisk; else -> UnknownRisk }
+fun focusRiskLabel(r: String?) = when (r) { "HIGH" -> "High risk"; "MEDIUM" -> "Medium risk"; "LOW" -> "Low risk"; else -> "Unknown" }
+fun focusRiskIcon(r: String?): ImageVector = when (r) {
+    "HIGH" -> androidx.compose.material.icons.Icons.Outlined.Warning; "MEDIUM" -> androidx.compose.material.icons.Icons.Outlined.ErrorOutline
+    "LOW" -> androidx.compose.material.icons.Icons.Outlined.CheckCircle; else -> androidx.compose.material.icons.Icons.Outlined.HelpOutline }
+
+@Composable fun FocusRiskChip(risk: String?, modifier: Modifier = Modifier, large: Boolean = false) {
+    val c = focusRiskColor(risk)
+    Surface(modifier = modifier, color = c.copy(alpha = 0.12f), shape = RoundedCornerShape(50)) {
+        Row(Modifier.padding(horizontal = if (large) 12.dp else 8.dp, vertical = if (large) 6.dp else 3.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(focusRiskIcon(risk), null, tint = c, modifier = Modifier.size(if (large) 16.dp else 12.dp)); Spacer(Modifier.width(4.dp))
+            Text(focusRiskLabel(risk), style = if (large) MaterialTheme.typography.labelLarge else MaterialTheme.typography.labelSmall, color = c, maxLines = 1)
+        }
+    }
+}
 
 @Composable fun EmptyState(icon: ImageVector, title: String, body: String, actionLabel: String? = null, onAction: (() -> Unit)? = null) {
     Column(Modifier.fillMaxWidth().padding(vertical = 28.dp, horizontal = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {

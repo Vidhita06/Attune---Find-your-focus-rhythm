@@ -20,15 +20,23 @@ data class EstimateView(
 
 sealed interface PredictionEvent { data class Message(val text: String) : PredictionEvent; data class OpenedGoFeedback(val id: String) : PredictionEvent; data object Back : PredictionEvent }
 
+/** The AI/rules decision for this notification, as shown on Before You Open. */
+data class DecisionView(val record: NotificationDecisionRecord, val reasons: List<com.attune.prediction.decision.DecisionReason>, val terms: List<String>)
+
 data class PredState(
     val loading: Boolean = true, val notFound: Boolean = false, val notif: QueuedNotification? = null, val estimate: EstimateView? = null,
     val phase: SessionPhase = SessionPhase.NO_SESSION, val decision: UserAction? = null, val counterfactual: CounterfactualResult? = null,
-    val failedAttempts: Int = 0, val hasOriginalTarget: Boolean = false, val inFlight: Boolean = false
+    val failedAttempts: Int = 0, val hasOriginalTarget: Boolean = false, val inFlight: Boolean = false,
+    val ai: DecisionView? = null, val feedbackGiven: List<FeedbackEvent> = emptyList(), val hideSensitive: Boolean = true
 )
 
 @HiltViewModel class PredictionViewModel @Inject constructor(
-    private val queue: QueueRepository, private val sessions: FocusSessionRepository, private val launcher: NotificationLauncher
+    private val queue: QueueRepository, private val sessions: FocusSessionRepository, private val launcher: NotificationLauncher,
+    private val decisions: DecisionRepository, private val personalization: PersonalizationRepository, private val models: ModelManager,
+    settings: SettingsRepository
 ) : ViewModel() {
+    private val aiView = MutableStateFlow<DecisionView?>(null)
+    private val extras = combine(aiView, personalization.events, settings.settings) { a, f, st -> Triple(a, f, st.hideSensitivePreviews) }
     private val id = MutableStateFlow<String?>(null)
     private val inFlight = MutableStateFlow(false)
     private val estimate = MutableStateFlow<EstimateView?>(null)
@@ -36,7 +44,9 @@ data class PredState(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val state: StateFlow<PredState> = id.filterNotNull().flatMapLatest { nid ->
-        combine(queue.observe(nid), queue.actionsFor(nid), queue.feedback().map { l -> l.filter { it.notificationId == nid } }, sessions.active, combine(estimate, inFlight) { e, f -> e to f }) { n, actions, fb, active, ef ->
+        combine(queue.observe(nid), queue.actionsFor(nid), queue.feedback().map { l -> l.filter { it.notificationId == nid } }, sessions.active,
+            combine(estimate, inFlight, extras) { e, f, x -> Triple(e, f, x) }) { n, actions, fb, active, efx ->
+            val ef = efx.first to efx.second; val (ai, fbEvents, hide) = efx.third
             if (n == null) return@combine PredState(loading = false, notFound = true)
             val decision = actions.firstOrNull { it.actionType != ActionType.OPENED || LaunchResults.succeeded(it.launchResult) || it.launchResult == LaunchResults.DEMO_NO_APP }
             val e = ef.first
@@ -49,7 +59,8 @@ data class PredState(
                     fb.firstOrNull { it.reportedTimeAwayMin != null }?.reportedTimeAwayMin, decision.sessionOutcome))
             } else null
             PredState(false, false, n, e, FocusSessionRepository.phaseOf(active), decision, cf,
-                actions.count { it.launchResult == LaunchResults.FAILED }, launcher.hasOriginalTarget(nid), ef.second)
+                actions.count { it.launchResult == LaunchResults.FAILED }, launcher.hasOriginalTarget(nid), ef.second,
+                ai, fbEvents.filter { it.notificationId == nid }, hide)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PredState())
 
@@ -59,6 +70,11 @@ data class PredState(
         viewModelScope.launch {
             val n = queue.observe(nid).first() ?: return@launch
             estimate.value = if (n.status.isOpen) live(n) else queue.storedPrediction(nid)?.let(::stored) ?: live(n)
+            aiView.value = n.decisionId?.let { decisions.get(it) }?.let { r ->
+                // Explanation words are computed on the fly from the stored preview (never persisted) and skipped for sensitive items.
+                val terms = if (n.isSensitive || n.textScrubbed) emptyList() else models.engine.explainTerms(n.title, n.previewText, n.category)
+                DecisionView(r, DecisionRepository.reasonsOf(r), terms)
+            }
         }
     }
 
@@ -92,6 +108,15 @@ data class PredState(
                 if (ev is PredictionEvent.Back) _events.emit(PredictionEvent.Message(if (queue.observe(nid).first()?.status == NotificationStatus.DELAYED) "Delayed until your break." else "Dismissed."))
                 _events.emit(ev)
             } finally { inFlight.value = false }
+        }
+    }
+    fun feedback(kind: com.attune.prediction.decision.FeedbackKind) {
+        val nid = id.value ?: return
+        viewModelScope.launch {
+            val n = queue.observe(nid).first() ?: return@launch
+            val msg = when (val r = personalization.record(kind, n, aiView.value?.record)) {
+                is PersonalizationRepository.Outcome.Saved -> r.message; is PersonalizationRepository.Outcome.NotPossible -> r.message }
+            _events.emit(PredictionEvent.Message(msg))
         }
     }
     fun openNow() = act { queue.openNow(it) }

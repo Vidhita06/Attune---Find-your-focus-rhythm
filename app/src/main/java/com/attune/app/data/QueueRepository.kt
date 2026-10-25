@@ -9,8 +9,8 @@ import com.attune.core.data.db.dao.*
 import com.attune.core.model.*
 import com.attune.prediction.AttentionPredictor
 import com.attune.prediction.model.*
-import com.attune.prediction.policy.PolicyDecision
-import com.attune.prediction.policy.Verdict
+import com.attune.prediction.decision.NotificationDecision
+import com.attune.prediction.decision.Routing
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -42,7 +42,8 @@ class QueueRepository @Inject constructor(
     private val settings: SettingsRepository,
     private val launcher: NotificationLauncher,
     private val cache: LaunchIntentCache,
-    private val predictor: AttentionPredictor
+    private val predictor: AttentionPredictor,
+    private val timeline: TimelineRepository
 ) {
     private val mutex = Mutex()
     /** sbn key -> grouped card id, so updates to a merged notification don't inflate the group count. */
@@ -53,24 +54,31 @@ class QueueRepository @Inject constructor(
     fun observe(id: String) = notifDao.observeById(id)
     fun actionsFor(id: String) = actionDao.observeForNotification(id)
 
-    /** Stores a real notification that the policy decided to QUEUE or FILTER. Returns the queue item id, or null for duplicates. */
-    suspend fun ingest(c: CapturedNotification, decision: PolicyDecision, session: FocusSession, contentIntent: PendingIntent?, groupRepeated: Boolean): String? = mutex.withLock {
+    /**
+     * Stores a real notification the decision engine routed to DEFER, REVIEW or FILTER. Returns the queue item id, or null
+     * for repeated callbacks. REVIEW items are copies: the original Android notification stays visible.
+     */
+    suspend fun ingest(c: CapturedNotification, decision: NotificationDecision, decisionId: String?, session: FocusSession, contentIntent: PendingIntent?, groupRepeated: Boolean): String? = mutex.withLock {
         val now = System.currentTimeMillis()
-        val status = if (decision.verdict == Verdict.FILTER) NotificationStatus.FILTERED else NotificationStatus.PENDING
+        val status = if (decision.routing == Routing.FILTER) NotificationStatus.FILTERED else NotificationStatus.PENDING
+        val keptVisible = decision.routing == Routing.REVIEW
+        val why = decision.reasons.firstOrNull()?.text
         val existing = notifDao.findByDedupKey(c.dedupKey) ?: mergedKeys[c.sbnKey]?.let { notifDao.getById(it) }
         if (existing != null) {
             val same = existing.title == c.title && existing.previewText == c.previewText
             return@withLock when {
                 existing.status.isOpen && same -> null // repeated callback
-                existing.status.isOpen -> existing.copy(title = c.title, previewText = c.previewText, lastUpdatedMs = now, sourceRemoved = false)
+                existing.status.isOpen -> existing.copy(title = c.title, previewText = c.previewText, lastUpdatedMs = now, sourceRemoved = false,
+                    focusRisk = decision.risk.name, decisionId = decisionId ?: existing.decisionId, isSensitive = decision.sensitive, keptVisible = keptVisible, ruleApplied = why)
                     .also { notifDao.upsert(it); cache.put(it.id, contentIntent) }.id
                 else -> existing.copy(title = c.title, previewText = c.previewText, lastUpdatedMs = now, postTimeMs = c.postTimeMs, status = status,
-                    sessionId = session.id, groupCount = 1, sourceRemoved = false, statusChangedMs = now, ruleApplied = decision.reason)
+                    sessionId = session.id, groupCount = 1, sourceRemoved = false, statusChangedMs = now, ruleApplied = why, focusRisk = decision.risk.name,
+                    decisionId = decisionId, isSensitive = decision.sensitive, keptVisible = keptVisible, textScrubbed = false)
                     .also { notifDao.upsert(it); cache.put(it.id, contentIntent) }.id
             }
         }
-        if (groupRepeated && status == NotificationStatus.PENDING) {
-            notifDao.findPendingFromPackage(c.packageName, session.id)?.let { g ->
+        if (groupRepeated && decision.routing == Routing.DEFER && !decision.sensitive) {
+            notifDao.findPendingFromPackage(c.packageName, session.id)?.takeIf { !it.keptVisible && !it.isSensitive }?.let { g ->
                 val merged = g.copy(title = c.title ?: g.title, previewText = c.previewText ?: g.previewText, groupCount = g.groupCount + 1,
                     lastUpdatedMs = now, sbnKey = c.sbnKey, sourceRemoved = false)
                 notifDao.upsert(merged); mergedKeys[c.sbnKey] = g.id; cache.put(g.id, contentIntent)
@@ -79,10 +87,16 @@ class QueueRepository @Inject constructor(
         }
         val item = QueuedNotification(UUID.randomUUID().toString(), session.id, c.packageName, decision.category, c.title, c.previewText,
             c.dedupKey, c.postTimeMs, status, isGroupSummary = c.isGroupSummary, appLabel = c.appLabel, sbnKey = c.sbnKey,
-            lastUpdatedMs = now, ruleApplied = decision.reason, androidCategory = c.androidCategory, statusChangedMs = if (status == NotificationStatus.FILTERED) now else null)
+            lastUpdatedMs = now, ruleApplied = why, androidCategory = c.androidCategory, statusChangedMs = if (status == NotificationStatus.FILTERED) now else null,
+            decisionId = decisionId, focusRisk = decision.risk.name, isSensitive = decision.sensitive, keptVisible = keptVisible)
         notifDao.upsert(item); cache.put(item.id, contentIntent)
         item.id
     }
+
+    /** Privacy retention: removes stored title/preview of handled items after [hours]. Returns how many items were scrubbed. */
+    suspend fun scrubOldText(hours: Int = TEXT_RETENTION_HOURS) = notifDao.scrubHandledTextBefore(System.currentTimeMillis() - hours * 3_600_000L)
+    suspend fun scrubAllText() = notifDao.scrubAllRealText()
+    val storedTextCount = notifDao.observeRealWithText()
 
     suspend fun markSuppressed(id: String) = mutex.withLock { notifDao.getById(id)?.let { notifDao.upsert(it.copy(wasSuppressed = true)) } }
 
@@ -143,6 +157,8 @@ class QueueRepository @Inject constructor(
                 ActionType.DISMISSED -> e.copy(dismissCount = e.dismissCount + 1) }.copy(lastUpdatedMs = now))
         }
         if (type == ActionType.OPENED && phase == SessionPhase.FOCUS && session != null) sessions.recordInterruption(session.id)
+        timeline.log(session?.id ?: n.sessionId.takeIf { it != "demo" }, when (type) { ActionType.OPENED -> TimelineType.OPENED; ActionType.DELAYED -> TimelineType.DELAYED; ActionType.DISMISSED -> TimelineType.DISMISSED },
+            n.appLabel.ifBlank { null }, n.isDemo, now)
         DecisionResult.Done(type, launch)
     }
 
@@ -164,4 +180,6 @@ class QueueRepository @Inject constructor(
         }
     }
     fun feedback() = feedbackDao.observeAll()
+
+    companion object { const val TEXT_RETENTION_HOURS = 24 }
 }

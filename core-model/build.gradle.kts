@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
@@ -19,4 +19,7 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.gson)
+    testImplementation(libs.junit)
+    // JVM SQLite driver, used only by MigrationTest to run the real migration SQL against a v2 database.
+    testImplementation("org.xerial:sqlite-jdbc:3.41.2.2")
 }

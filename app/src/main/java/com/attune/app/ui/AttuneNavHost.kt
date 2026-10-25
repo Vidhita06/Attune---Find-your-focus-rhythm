@@ -1,4 +1,4 @@
-﻿package com.attune.app.ui
+package com.attune.app.ui
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -19,6 +19,13 @@ import com.attune.app.data.Flag
 import com.attune.app.data.QueueRepository
 import com.attune.app.data.SettingsRepository
 import com.attune.app.ui.components.LocalSnackbar
+import com.attune.app.data.PendingNavigation
+import com.attune.app.ui.ai.AiModeScreen
+import com.attune.app.ui.insights.InsightsNav
+import com.attune.app.ui.insights.InsightsTab
+import com.attune.app.ui.privacy.LearnedPreferencesScreen
+import com.attune.app.ui.privacy.PrivacyCenterScreen
+import com.attune.app.ui.privacy.SessionTimelineScreen
 import com.attune.app.ui.feedback.FeedbackScreen
 import com.attune.app.ui.focus.FocusScreen
 import com.attune.app.ui.home.HomeScreen
@@ -61,6 +68,9 @@ private val TABS = listOf(
 
     fun goTab(route: String) = nav.navigate(route) { popUpTo(nav.graph.findStartDestination().id) { saveState = true }; launchSingleTop = true; restoreState = true }
     fun openItem(id: String) = nav.navigate("prediction/$id")
+    fun openSession(id: String) = nav.navigate("session/$id")
+    val pendingTab by PendingNavigation.target.collectAsState()
+    LaunchedEffect(pendingTab) { pendingTab?.let { if (TABS.any { t -> t.route == it }) goTab(it); PendingNavigation.target.value = null } }
 
     CompositionLocalProvider(LocalSnackbar provides snackbar) {
         Scaffold(containerColor = WarmWhite, snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
@@ -76,11 +86,19 @@ private val TABS = listOf(
         }) { pad ->
             NavHost(nav, "home", Modifier.padding(pad)) {
                 composable("home") { HomeScreen(onOpenFocus = { goTab("focus") }, onOpenQueue = { goTab("queue") }, onOpenInsights = { goTab("insights") },
-                    onOpenItem = ::openItem, onSetupAccess = { nav.navigate("access") }) }
-                composable("focus") { FocusScreen(onOpenQueue = { goTab("queue") }) }
+                    onOpenItem = ::openItem, onSetupAccess = { nav.navigate("access") }, onOpenAi = { nav.navigate("ai") }, onOpenGoals = { goTab("profile") }) }
+                composable("focus") { FocusScreen(onOpenQueue = { goTab("queue") }, onOpenSession = ::openSession, onSetupAccess = { nav.navigate("access") }) }
                 composable("queue") { QueueScreen(onOpenPrediction = ::openItem, onSetupAccess = { nav.navigate("access") }, onOpenFocus = { goTab("focus") }) }
-                composable("insights") { InsightsScreen(onStartFocus = { goTab("focus") }, onOpenProfile = { goTab("profile") }) }
-                composable("profile") { ProfileScreen(onOpenRules = { nav.navigate("rules") }, onOpenAccessGuide = { nav.navigate("access") }) }
+                composable("insights") { InsightsScreen(onStartFocus = { goTab("focus") }, onOpenSession = ::openSession) }
+                composable("profile") { ProfileScreen(onOpenRules = { nav.navigate("rules") }, onOpenAccessGuide = { nav.navigate("access") }, onOpenAi = { nav.navigate("ai") },
+                    onOpenPrivacy = { nav.navigate("privacy") }, onOpenLearned = { nav.navigate("learned") },
+                    onOpenAttentionProfile = { InsightsNav.request.value = InsightsTab.PROFILE; goTab("insights") }) }
+                composable("ai") { AiModeScreen(onBack = { nav.popBackStack() }, onOpenRules = { nav.navigate("rules") }) }
+                composable("privacy") { PrivacyCenterScreen(onBack = { nav.popBackStack() }, onOpenLearned = { nav.navigate("learned") }) }
+                composable("learned") { LearnedPreferencesScreen(onBack = { nav.popBackStack() }) }
+                composable("session/{id}", arguments = listOf(navArgument("id") { type = NavType.StringType })) {
+                    SessionTimelineScreen(it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() })
+                }
                 composable("prediction/{id}", arguments = listOf(navArgument("id") { type = NavType.StringType })) {
                     PredictionScreen(it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() },
                         onFeedback = { id -> nav.navigate("feedback/$id") { popUpTo("prediction/{id}") { inclusive = true } } })

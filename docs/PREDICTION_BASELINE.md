@@ -1,4 +1,6 @@
-# Attune prediction baseline (`baseline-v1`)
+# Attune time-cost baseline (`baseline-v1`)
+
+> Scope: this baseline estimates only *time away / recovery* on Before You Open. Notification **routing** (hold / let through / review) is done by the trained on-device classifier described in `AI_MODE_AND_ARCHITECTURE.md` and `ml/README.md`.
 
 This is a **transparent, deterministic rule-based estimator**. It is **not a trained machine-learning model**, and its accuracy has **not been validated**. It exists so the prototype can show the Before You Open experience honestly, and so that it can be replaced by a trained model later.
 

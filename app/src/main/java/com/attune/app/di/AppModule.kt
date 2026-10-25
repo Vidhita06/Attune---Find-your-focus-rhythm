@@ -1,4 +1,4 @@
-﻿package com.attune.app.di
+package com.attune.app.di
 import android.content.Context
 import com.attune.core.data.db.AttuneDatabase
 import com.attune.prediction.AttentionPredictor
@@ -19,6 +19,10 @@ object DatabaseModule {
     @Provides fun provideFeedbackDao(db:AttuneDatabase) = db.feedbackDao()
     @Provides fun provideAttentionProfileDao(db:AttuneDatabase) = db.attentionProfileDao()
     @Provides fun provideEnergyCheckInDao(db:AttuneDatabase) = db.energyCheckInDao()
+    @Provides fun provideDecisionDao(db:AttuneDatabase) = db.decisionDao()
+    @Provides fun provideFeedbackEventDao(db:AttuneDatabase) = db.feedbackEventDao()
+    @Provides fun provideUserRuleDao(db:AttuneDatabase) = db.userRuleDao()
+    @Provides fun provideSessionEventDao(db:AttuneDatabase) = db.sessionEventDao()
 }
 @Module @InstallIn(SingletonComponent::class)
 object PredictionModule {

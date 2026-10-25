@@ -1,11 +1,12 @@
-﻿package com.attune.core.data.db
+package com.attune.core.data.db
 import android.content.Context
 import androidx.room.*
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.attune.core.data.db.dao.*
 import com.attune.core.model.*
-@Database(entities=[UserProfile::class,FocusSession::class,QueuedNotification::class,Prediction::class,UserAction::class,Feedback::class,AttentionProfileSummary::class,EnergyCheckIn::class], version=2, exportSchema=true)
+@Database(entities=[UserProfile::class,FocusSession::class,QueuedNotification::class,Prediction::class,UserAction::class,Feedback::class,AttentionProfileSummary::class,EnergyCheckIn::class,
+    NotificationDecisionRecord::class,FeedbackEvent::class,UserRuleRecord::class,SessionEvent::class], version=3, exportSchema=true)
 @TypeConverters(Converters::class)
 abstract class AttuneDatabase : RoomDatabase() {
     abstract fun userProfileDao(): UserProfileDao
@@ -16,12 +17,25 @@ abstract class AttuneDatabase : RoomDatabase() {
     abstract fun feedbackDao(): FeedbackDao
     abstract fun attentionProfileDao(): AttentionProfileSummaryDao
     abstract fun energyCheckInDao(): EnergyCheckInDao
+    abstract fun decisionDao(): DecisionDao
+    abstract fun feedbackEventDao(): FeedbackEventDao
+    abstract fun userRuleDao(): UserRuleDao
+    abstract fun sessionEventDao(): SessionEventDao
     companion object {
         @Volatile private var INSTANCE: AttuneDatabase? = null
         fun getInstance(ctx: Context): AttuneDatabase = INSTANCE ?: synchronized(this) {
             INSTANCE ?: Room.databaseBuilder(ctx.applicationContext, AttuneDatabase::class.java, "attune.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build().also { INSTANCE = it }
+        }
+
+        /**
+         * v2 -> v3: additive only. Adds the decision log, feedback events, user rules and session timeline tables, a 1–5
+         * energy score (backfilled from the old 3-level value) and queue privacy/risk columns. Nothing is dropped or rewritten.
+         * The statements live in [Migrations.SQL_2_3] so the JVM migration test runs exactly the same SQL.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) { Migrations.SQL_2_3.forEach(db::execSQL) }
         }
 
         /** v1 -> v2: additive only. Adds timer/pause bookkeeping, queue metadata, outcome fields and energy check-ins. No data is dropped. */
@@ -62,6 +76,28 @@ abstract class AttuneDatabase : RoomDatabase() {
         }
     }
 }
+object Migrations {
+    val SQL_2_3 = listOf(
+        "ALTER TABLE queued_notifications ADD COLUMN decisionId TEXT",
+        "ALTER TABLE queued_notifications ADD COLUMN focusRisk TEXT",
+        "ALTER TABLE queued_notifications ADD COLUMN isSensitive INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE queued_notifications ADD COLUMN keptVisible INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE queued_notifications ADD COLUMN textScrubbed INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE energy_checkins ADD COLUMN score INTEGER NOT NULL DEFAULT 3",
+        "ALTER TABLE energy_checkins ADD COLUMN phase TEXT",
+        "UPDATE energy_checkins SET score = CASE level WHEN 'LOW' THEN 2 WHEN 'HIGH' THEN 4 ELSE 3 END",
+        "CREATE TABLE IF NOT EXISTS `notification_decisions` (`id` TEXT NOT NULL, `dedupKey` TEXT NOT NULL, `packageName` TEXT NOT NULL, `appLabel` TEXT NOT NULL, `category` TEXT NOT NULL, `postedAtMs` INTEGER NOT NULL, `decidedAtMs` INTEGER NOT NULL, `sessionId` TEXT, `phase` TEXT NOT NULL, `routing` TEXT NOT NULL, `focusRisk` TEXT NOT NULL, `importance` TEXT, `pImportant` REAL, `pUrgent` REAL, `pDistracting` REAL, `pAction` REAL, `confidence` REAL, `personalBias` REAL, `source` TEXT NOT NULL, `reasons` TEXT NOT NULL, `modelVersion` TEXT, `hasLink` INTEGER NOT NULL, `linkSafety` TEXT NOT NULL, `isSensitive` INTEGER NOT NULL, `evidence` TEXT, `senderKey` TEXT, `overrodeModel` INTEGER NOT NULL, `modelRouting` TEXT, `matchedRule` TEXT, `notificationId` TEXT, `isDemo` INTEGER NOT NULL, `updateCount` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "CREATE UNIQUE INDEX IF NOT EXISTS `index_notification_decisions_dedupKey` ON `notification_decisions` (`dedupKey`)",
+        "CREATE INDEX IF NOT EXISTS `index_notification_decisions_decidedAtMs` ON `notification_decisions` (`decidedAtMs`)",
+        "CREATE INDEX IF NOT EXISTS `index_notification_decisions_sessionId` ON `notification_decisions` (`sessionId`)",
+        "CREATE TABLE IF NOT EXISTS `feedback_events` (`id` TEXT NOT NULL, `createdMs` INTEGER NOT NULL, `kind` TEXT NOT NULL, `packageName` TEXT NOT NULL, `appLabel` TEXT NOT NULL, `category` TEXT NOT NULL, `senderKey` TEXT, `senderHint` TEXT, `notificationId` TEXT, `decisionId` TEXT, `predictedRisk` TEXT, `predictedRouting` TEXT, `isDemo` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "CREATE INDEX IF NOT EXISTS `index_feedback_events_createdMs` ON `feedback_events` (`createdMs`)",
+        "CREATE TABLE IF NOT EXISTS `user_rules` (`id` TEXT NOT NULL, `kind` TEXT NOT NULL, `value` TEXT NOT NULL, `action` TEXT NOT NULL, `label` TEXT NOT NULL, `createdMs` INTEGER NOT NULL, `source` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "CREATE TABLE IF NOT EXISTS `session_events` (`id` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `atMs` INTEGER NOT NULL, `type` TEXT NOT NULL, `detail` TEXT, `isDemo` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "CREATE INDEX IF NOT EXISTS `index_session_events_sessionId` ON `session_events` (`sessionId`)"
+    )
+}
+
 class Converters {
     @TypeConverter fun fromSS(v:SessionState)=v.name; @TypeConverter fun toSS(v:String)=runCatching{SessionState.valueOf(v)}.getOrDefault(SessionState.IDLE)
     @TypeConverter fun fromNS(v:NotificationStatus)=v.name; @TypeConverter fun toNS(v:String)=runCatching{NotificationStatus.valueOf(v)}.getOrDefault(NotificationStatus.PENDING)

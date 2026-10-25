@@ -1,42 +1,529 @@
 {
-  "metadata": { "isDemo": true, "note": "DEMO DATA - synthetic samples for demonstration only. Not real user data. Offsets are minutes relative to the moment the demo is seeded." },
-  "queue": [
-    {"id":"q1","packageName":"com.instagram.android","appName":"Instagram","category":"social","title":"Alex liked your photo","text":"Alex and 12 others liked your photo","minutesAgo":4,"group":3},
-    {"id":"q2","packageName":"com.whatsapp","appName":"WhatsApp","category":"messaging","title":"Study Group","text":"Priya: Did anyone finish question 4?","minutesAgo":9,"group":1},
-    {"id":"q3","packageName":"com.google.android.youtube","appName":"YouTube","category":"short_video","title":"New Short from TechLab","text":"You won't believe this keyboard mod","minutesAgo":14,"group":1},
-    {"id":"q4","packageName":"com.google.android.gm","appName":"Gmail","category":"email","title":"Course team","text":"Assignment 3 feedback has been posted","minutesAgo":21,"group":1},
-    {"id":"q5","packageName":"com.amazon.mShop.android.shopping","appName":"Amazon","category":"promotion","title":"Deal of the day","text":"Up to 40% off headphones — today only","minutesAgo":33,"group":1}
-  ],
-  "live": [
-    {"packageName":"com.snapchat.android","appName":"Snapchat","category":"social","title":"Sam sent you a Snap","text":null},
-    {"packageName":"com.discord","appName":"Discord","category":"messaging","title":"#project-team","text":"Taylor: pushed the new build"},
-    {"packageName":"com.linkedin.android","appName":"LinkedIn","category":"social","title":"You appeared in 9 searches","text":"See who's looking at your profile"},
-    {"packageName":"com.inshorts","appName":"Inshorts","category":"news","title":"Top stories","text":"5 stories you might have missed"},
-    {"packageName":"com.whatsapp","appName":"WhatsApp","category":"messaging","title":"Mom","text":"Call me when you're free"}
-  ],
-  "sessions": [
-    {"id":"s1","daysAgo":6,"hour":9,"plannedMin":45,"focusedMin":45,"pauses":0,"interruptions":0,"outcome":"COMPLETED"},
-    {"id":"s2","daysAgo":5,"hour":15,"plannedMin":25,"focusedMin":14,"pauses":1,"interruptions":2,"outcome":"ENDED_EARLY"},
-    {"id":"s3","daysAgo":4,"hour":10,"plannedMin":50,"focusedMin":50,"pauses":1,"interruptions":0,"outcome":"COMPLETED"},
-    {"id":"s4","daysAgo":3,"hour":21,"plannedMin":25,"focusedMin":18,"pauses":0,"interruptions":1,"outcome":"ENDED_EARLY"},
-    {"id":"s5","daysAgo":2,"hour":9,"plannedMin":45,"focusedMin":45,"pauses":0,"interruptions":0,"outcome":"COMPLETED"},
-    {"id":"s6","daysAgo":1,"hour":14,"plannedMin":30,"focusedMin":30,"pauses":1,"interruptions":1,"outcome":"COMPLETED"},
-    {"id":"s7","daysAgo":1,"hour":20,"plannedMin":25,"focusedMin":25,"pauses":0,"interruptions":0,"outcome":"COMPLETED"}
-  ],
-  "history": [
-    {"id":"h1","session":"s2","packageName":"com.instagram.android","appName":"Instagram","category":"social","title":"Jordan mentioned you","text":"in a comment","action":"OPENED","timeAway":18,"recovery":9},
-    {"id":"h2","session":"s2","packageName":"com.google.android.youtube","appName":"YouTube","category":"short_video","title":"Trending Short","text":null,"action":"OPENED","timeAway":24,"recovery":11},
-    {"id":"h3","session":"s3","packageName":"com.whatsapp","appName":"WhatsApp","category":"messaging","title":"Riya","text":"ok see you at 6","action":"DELAYED"},
-    {"id":"h4","session":"s3","packageName":"com.instagram.android","appName":"Instagram","category":"social","title":"New follower","text":"casey.design started following you","action":"DISMISSED"},
-    {"id":"h5","session":"s4","packageName":"com.whatsapp","appName":"WhatsApp","category":"messaging","title":"Family","text":"Dinner at 8?","action":"OPENED","timeAway":3,"recovery":2},
-    {"id":"h6","session":"s5","packageName":"com.amazon.mShop.android.shopping","appName":"Amazon","category":"promotion","title":"Price drop","text":"An item in your wishlist is cheaper","action":"DISMISSED"},
-    {"id":"h7","session":"s6","packageName":"com.instagram.android","appName":"Instagram","category":"social","title":"Story reply","text":"haha same","action":"OPENED","timeAway":12,"recovery":7},
-    {"id":"h8","session":"s6","packageName":"com.google.android.gm","appName":"Gmail","category":"email","title":"Library","text":"Your book is due tomorrow","action":"DELAYED"},
-    {"id":"h9","session":"s7","packageName":"com.google.android.youtube","appName":"YouTube","category":"short_video","title":"New upload","text":"From a channel you follow","action":"DISMISSED"}
-  ],
-  "checkins": [
-    {"daysAgo":2,"hour":9,"level":"HIGH"},
-    {"daysAgo":1,"hour":14,"level":"MODERATE"},
-    {"daysAgo":1,"hour":20,"level":"LOW"}
-  ]
+ "metadata": {
+  "isDemo": true,
+  "note": "DEMO DATA - synthetic samples for demonstration only. Not real user data. Offsets are relative to the moment the demo is seeded. Decisions for demo samples are produced by the real on-device engine."
+ },
+ "queue": [
+  {
+   "id": "q1",
+   "packageName": "com.instagram.android",
+   "appName": "Instagram",
+   "category": "social",
+   "title": "Alex liked your photo",
+   "text": "Alex and 12 others liked your photo",
+   "minutesAgo": 4,
+   "group": 3
+  },
+  {
+   "id": "q2",
+   "packageName": "com.whatsapp",
+   "appName": "WhatsApp",
+   "category": "messaging",
+   "title": "Study Group",
+   "text": "Priya: Did anyone finish question 4?",
+   "minutesAgo": 9,
+   "group": 1
+  },
+  {
+   "id": "q3",
+   "packageName": "com.google.android.youtube",
+   "appName": "YouTube",
+   "category": "short_video",
+   "title": "New Short from TechLab",
+   "text": "You won't believe this keyboard mod",
+   "minutesAgo": 14,
+   "group": 1
+  },
+  {
+   "id": "q4",
+   "packageName": "com.google.android.gm",
+   "appName": "Gmail",
+   "category": "email",
+   "title": "Course team",
+   "text": "Assignment 3 feedback has been posted",
+   "minutesAgo": 21,
+   "group": 1
+  },
+  {
+   "id": "q5",
+   "packageName": "com.amazon.mShop.android.shopping",
+   "appName": "Amazon",
+   "category": "promotion",
+   "title": "Deal of the day",
+   "text": "Up to 40% off headphones — today only",
+   "minutesAgo": 33,
+   "group": 1
+  }
+ ],
+ "live": [
+  {
+   "packageName": "com.snapchat.android",
+   "appName": "Snapchat",
+   "category": "social",
+   "title": "Sam sent you a Snap",
+   "text": "Tap to view"
+  },
+  {
+   "packageName": "com.whatsapp",
+   "appName": "WhatsApp",
+   "category": "messaging",
+   "title": "Mom",
+   "text": "Nani is in the hospital, please call me as soon as you can"
+  },
+  {
+   "packageName": "com.amazon.mShop.android.shopping",
+   "appName": "Amazon",
+   "category": "shopping",
+   "title": "Lightning deal",
+   "text": "LAST CHANCE: 60% off earbuds, ends in 15 minutes!"
+  },
+  {
+   "packageName": "com.whatsapp",
+   "appName": "WhatsApp",
+   "category": "messaging",
+   "title": "Rahul",
+   "text": "https://bit.ly/3kQ9xZt"
+  },
+  {
+   "packageName": "com.google.android.apps.messaging",
+   "appName": "Messages",
+   "category": "messaging",
+   "title": "AX-HDFCBK",
+   "text": "482913 is your OTP for login. Do not share it with anyone"
+  },
+  {
+   "packageName": "com.instagram.android",
+   "appName": "Instagram",
+   "category": "social",
+   "title": "Instagram",
+   "text": "priya_k and 8 others liked your photo"
+  },
+  {
+   "packageName": "com.google.android.apps.classroom",
+   "appName": "Classroom",
+   "category": "education",
+   "title": "Prof. Sharma",
+   "text": "Reminder: DBMS assignment is due today at 11:59 PM"
+  },
+  {
+   "packageName": "com.whatsapp",
+   "appName": "WhatsApp",
+   "category": "messaging",
+   "title": "Rahul",
+   "text": "lol did you see the meme I sent"
+  },
+  {
+   "packageName": "com.google.android.apps.messaging",
+   "appName": "Messages",
+   "category": "messaging",
+   "title": "VK-ALERTS",
+   "text": "Your KYC expires today. Update now at http://hdfc-secure-verify.top/kyc or your account will be blocked"
+  },
+  {
+   "packageName": "com.whatsapp",
+   "appName": "WhatsApp",
+   "category": "messaging",
+   "title": "Mom",
+   "text": "call me"
+  }
+ ],
+ "sessions": [
+  {
+   "id": "s1",
+   "daysAgo": 6,
+   "hour": 9,
+   "plannedMin": 45,
+   "focusedMin": 45,
+   "pauses": 0,
+   "interruptions": 0,
+   "outcome": "COMPLETED"
+  },
+  {
+   "id": "s2",
+   "daysAgo": 5,
+   "hour": 15,
+   "plannedMin": 25,
+   "focusedMin": 14,
+   "pauses": 1,
+   "interruptions": 2,
+   "outcome": "ENDED_EARLY"
+  },
+  {
+   "id": "s3",
+   "daysAgo": 4,
+   "hour": 10,
+   "plannedMin": 50,
+   "focusedMin": 50,
+   "pauses": 1,
+   "interruptions": 0,
+   "outcome": "COMPLETED"
+  },
+  {
+   "id": "s4",
+   "daysAgo": 3,
+   "hour": 21,
+   "plannedMin": 25,
+   "focusedMin": 18,
+   "pauses": 0,
+   "interruptions": 1,
+   "outcome": "ENDED_EARLY"
+  },
+  {
+   "id": "s5",
+   "daysAgo": 2,
+   "hour": 9,
+   "plannedMin": 45,
+   "focusedMin": 45,
+   "pauses": 0,
+   "interruptions": 0,
+   "outcome": "COMPLETED"
+  },
+  {
+   "id": "s6",
+   "daysAgo": 1,
+   "hour": 14,
+   "plannedMin": 30,
+   "focusedMin": 30,
+   "pauses": 1,
+   "interruptions": 1,
+   "outcome": "COMPLETED"
+  },
+  {
+   "id": "s7",
+   "daysAgo": 1,
+   "hour": 20,
+   "plannedMin": 25,
+   "focusedMin": 25,
+   "pauses": 0,
+   "interruptions": 0,
+   "outcome": "COMPLETED"
+  },
+  {
+   "id": "s8",
+   "daysAgo": 8,
+   "hour": 9,
+   "plannedMin": 45,
+   "focusedMin": 45,
+   "pauses": 0,
+   "interruptions": 0,
+   "outcome": "COMPLETED"
+  },
+  {
+   "id": "s9",
+   "daysAgo": 9,
+   "hour": 21,
+   "plannedMin": 25,
+   "focusedMin": 10,
+   "pauses": 0,
+   "interruptions": 2,
+   "outcome": "ENDED_EARLY"
+  },
+  {
+   "id": "s10",
+   "daysAgo": 11,
+   "hour": 10,
+   "plannedMin": 50,
+   "focusedMin": 50,
+   "pauses": 1,
+   "interruptions": 0,
+   "outcome": "COMPLETED"
+  },
+  {
+   "id": "s11",
+   "daysAgo": 12,
+   "hour": 15,
+   "plannedMin": 25,
+   "focusedMin": 25,
+   "pauses": 0,
+   "interruptions": 0,
+   "outcome": "COMPLETED"
+  },
+  {
+   "id": "s12",
+   "daysAgo": 14,
+   "hour": 9,
+   "plannedMin": 45,
+   "focusedMin": 30,
+   "pauses": 0,
+   "interruptions": 1,
+   "outcome": "ENDED_EARLY"
+  },
+  {
+   "id": "s13",
+   "daysAgo": 16,
+   "hour": 11,
+   "plannedMin": 60,
+   "focusedMin": 60,
+   "pauses": 0,
+   "interruptions": 0,
+   "outcome": "COMPLETED"
+  },
+  {
+   "id": "s14",
+   "daysAgo": 18,
+   "hour": 20,
+   "plannedMin": 25,
+   "focusedMin": 25,
+   "pauses": 1,
+   "interruptions": 0,
+   "outcome": "COMPLETED"
+  },
+  {
+   "id": "s15",
+   "daysAgo": 20,
+   "hour": 10,
+   "plannedMin": 45,
+   "focusedMin": 45,
+   "pauses": 0,
+   "interruptions": 0,
+   "outcome": "COMPLETED"
+  },
+  {
+   "id": "s16",
+   "daysAgo": 23,
+   "hour": 14,
+   "plannedMin": 25,
+   "focusedMin": 12,
+   "pauses": 1,
+   "interruptions": 1,
+   "outcome": "ENDED_EARLY"
+  },
+  {
+   "id": "s17",
+   "daysAgo": 26,
+   "hour": 9,
+   "plannedMin": 50,
+   "focusedMin": 50,
+   "pauses": 0,
+   "interruptions": 0,
+   "outcome": "COMPLETED"
+  }
+ ],
+ "history": [
+  {
+   "id": "h1",
+   "session": "s2",
+   "packageName": "com.instagram.android",
+   "appName": "Instagram",
+   "category": "social",
+   "title": "Jordan mentioned you",
+   "text": "in a comment",
+   "action": "OPENED",
+   "timeAway": 18,
+   "recovery": 9
+  },
+  {
+   "id": "h2",
+   "session": "s2",
+   "packageName": "com.google.android.youtube",
+   "appName": "YouTube",
+   "category": "short_video",
+   "title": "Trending Short",
+   "text": null,
+   "action": "OPENED",
+   "timeAway": 24,
+   "recovery": 11
+  },
+  {
+   "id": "h3",
+   "session": "s3",
+   "packageName": "com.whatsapp",
+   "appName": "WhatsApp",
+   "category": "messaging",
+   "title": "Riya",
+   "text": "ok see you at 6",
+   "action": "DELAYED"
+  },
+  {
+   "id": "h4",
+   "session": "s3",
+   "packageName": "com.instagram.android",
+   "appName": "Instagram",
+   "category": "social",
+   "title": "New follower",
+   "text": "casey.design started following you",
+   "action": "DISMISSED"
+  },
+  {
+   "id": "h5",
+   "session": "s4",
+   "packageName": "com.whatsapp",
+   "appName": "WhatsApp",
+   "category": "messaging",
+   "title": "Family",
+   "text": "Dinner at 8?",
+   "action": "OPENED",
+   "timeAway": 3,
+   "recovery": 2
+  },
+  {
+   "id": "h6",
+   "session": "s5",
+   "packageName": "com.amazon.mShop.android.shopping",
+   "appName": "Amazon",
+   "category": "promotion",
+   "title": "Price drop",
+   "text": "An item in your wishlist is cheaper",
+   "action": "DISMISSED"
+  },
+  {
+   "id": "h7",
+   "session": "s6",
+   "packageName": "com.instagram.android",
+   "appName": "Instagram",
+   "category": "social",
+   "title": "Story reply",
+   "text": "haha same",
+   "action": "OPENED",
+   "timeAway": 12,
+   "recovery": 7
+  },
+  {
+   "id": "h8",
+   "session": "s6",
+   "packageName": "com.google.android.gm",
+   "appName": "Gmail",
+   "category": "email",
+   "title": "Library",
+   "text": "Your book is due tomorrow",
+   "action": "DELAYED"
+  },
+  {
+   "id": "h9",
+   "session": "s7",
+   "packageName": "com.google.android.youtube",
+   "appName": "YouTube",
+   "category": "short_video",
+   "title": "New upload",
+   "text": "From a channel you follow",
+   "action": "DISMISSED"
+  }
+ ],
+ "checkins": [
+  {
+   "daysAgo": 6,
+   "hour": 9,
+   "score": 4,
+   "phase": "BEFORE"
+  },
+  {
+   "daysAgo": 5,
+   "hour": 15,
+   "score": 2,
+   "phase": "BEFORE"
+  },
+  {
+   "daysAgo": 4,
+   "hour": 10,
+   "score": 4,
+   "phase": "BEFORE"
+  },
+  {
+   "daysAgo": 2,
+   "hour": 9,
+   "score": 5,
+   "phase": "BEFORE"
+  },
+  {
+   "daysAgo": 1,
+   "hour": 14,
+   "score": 3,
+   "phase": null
+  },
+  {
+   "daysAgo": 1,
+   "hour": 20,
+   "score": 2,
+   "phase": null
+  },
+  {
+   "daysAgo": 9,
+   "hour": 21,
+   "score": 1,
+   "phase": "BEFORE"
+  },
+  {
+   "daysAgo": 11,
+   "hour": 10,
+   "score": 4,
+   "phase": "BEFORE"
+  },
+  {
+   "daysAgo": 14,
+   "hour": 9,
+   "score": 3,
+   "phase": "BEFORE"
+  },
+  {
+   "daysAgo": 20,
+   "hour": 10,
+   "score": 4,
+   "phase": "BEFORE"
+  }
+ ],
+ "allowed": [
+  {
+   "session": "s1",
+   "packageName": "com.google.android.apps.messaging",
+   "appName": "Messages",
+   "title": "AD-AMAZON",
+   "text": "Your one-time password is 551209. Valid for 10 minutes"
+  },
+  {
+   "session": "s3",
+   "packageName": "com.google.android.calendar",
+   "appName": "Calendar",
+   "title": "Calendar",
+   "text": "Standup starts in 5 minutes"
+  },
+  {
+   "session": "s3",
+   "packageName": "com.whatsapp",
+   "appName": "WhatsApp",
+   "title": "Didi",
+   "text": "call me right now, it's urgent"
+  },
+  {
+   "session": "s8",
+   "packageName": "com.slack",
+   "appName": "Slack",
+   "title": "On-call Bot",
+   "text": "PagerDuty: high error rate on payments API, please ack"
+  },
+  {
+   "session": "s10",
+   "packageName": "com.google.android.apps.classroom",
+   "appName": "Classroom",
+   "title": "Exam Cell",
+   "text": "Quiz for Operating Systems starts in 15 minutes, join now"
+  },
+  {
+   "session": "s12",
+   "packageName": "com.instagram.android",
+   "appName": "Instagram",
+   "title": "Instagram",
+   "text": "meera started following you"
+  },
+  {
+   "session": "s13",
+   "packageName": "com.whatsapp",
+   "appName": "WhatsApp",
+   "title": "Kabir",
+   "text": "haha mast tha yaar"
+  },
+  {
+   "session": "s15",
+   "packageName": "com.google.android.youtube",
+   "appName": "YouTube",
+   "title": "YouTube",
+   "text": "carryminati is live now"
+  },
+  {
+   "session": "s16",
+   "packageName": "com.amazon.mShop.android.shopping",
+   "appName": "Amazon",
+   "title": "Amazon",
+   "text": "Price drop alert on running shoes"
+  }
+ ]
 }

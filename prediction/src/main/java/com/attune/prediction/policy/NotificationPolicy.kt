@@ -41,6 +41,13 @@ object NotificationPolicy {
         else -> "unknown"
     }
 
+    fun displayCategory(c: String): String = when (c) {
+        "messaging" -> "Messaging"; "social" -> "Social media"; "short_video" -> "Short video"; "entertainment" -> "Entertainment"
+        "gaming" -> "Games"; "shopping" -> "Shopping"; "promotion" -> "Promotions"; "news" -> "News"; "email" -> "Email"
+        "productivity" -> "Work tools"; "finance" -> "Finance"; "health" -> "Health"; "education" -> "Education"; "calls" -> "Calls"
+        "system" -> "System"; else -> "Other apps"
+    }
+
     fun looksLikeOtp(title: String?, text: String?): Boolean {
         val s = listOfNotNull(title, text).joinToString(" ")
         return otpKeywords.containsMatchIn(s) && otpDigits.containsMatchIn(s)

@@ -20,7 +20,9 @@ import javax.inject.Singleton
 class FocusSessionRepository @Inject constructor(
     @ApplicationContext private val ctx: Context,
     private val dao: FocusSessionDao,
-    private val actionDao: UserActionDao
+    private val actionDao: UserActionDao,
+    private val timeline: TimelineRepository,
+    private val summary: FocusSummaryNotifier
 ) {
     private val mutex = Mutex()
     val active: Flow<FocusSession?> = dao.observeActive()
@@ -32,13 +34,18 @@ class FocusSessionRepository @Inject constructor(
     suspend fun start(minutes: Int): FocusSession = mutex.withLock {
         getActive()?.let { return@withLock it }
         val now = System.currentTimeMillis(); val min = minutes.coerceIn(1, 180)
-        FocusSession(UUID.randomUUID().toString(), now, now + min * 60_000L, state = SessionState.FOCUS, plannedDurationMin = min).also { dao.upsert(it) }
+        FocusSession(UUID.randomUUID().toString(), now, now + min * 60_000L, state = SessionState.FOCUS, plannedDurationMin = min)
+            .also { dao.upsert(it); timeline.log(it.id, TimelineType.START, "$min min planned", atMs = now) }
     }.also { FocusTimerService.start(ctx) }
 
-    suspend fun pause(asBreak: Boolean = false) = mutex.withLock {
-        val s = getActive() ?: return@withLock
-        if (s.state != SessionState.FOCUS) return@withLock
-        dao.upsert(s.copy(state = if (asBreak) SessionState.BREAK else SessionState.PAUSED, breakStartMs = System.currentTimeMillis(), pauseCount = s.pauseCount + 1))
+    suspend fun pause(asBreak: Boolean = false) {
+        val paused = mutex.withLock {
+            val s = getActive() ?: return@withLock null
+            if (s.state != SessionState.FOCUS) return@withLock null
+            s.copy(state = if (asBreak) SessionState.BREAK else SessionState.PAUSED, breakStartMs = System.currentTimeMillis(), pauseCount = s.pauseCount + 1)
+                .also { dao.upsert(it); timeline.log(it.id, if (asBreak) TimelineType.BREAK else TimelineType.PAUSE) }
+        } ?: return
+        runCatching { summary.onSessionStopped(paused, paused.state) }
     }
 
     suspend fun resume() = mutex.withLock {
@@ -48,6 +55,7 @@ class FocusSessionRepository @Inject constructor(
         val paused = s.totalPausedMs + (now - (s.breakStartMs ?: now)).coerceAtLeast(0)
         val r = s.copy(state = SessionState.FOCUS, breakStartMs = null, totalPausedMs = paused)
         dao.upsert(r.copy(plannedEndMs = TimerMath.dueAtMs(r)))
+        timeline.log(s.id, TimelineType.RESUME, "after ${((now - (s.breakStartMs ?: now)) / 60_000).coerceAtLeast(0)} min")
     }.also { FocusTimerService.start(ctx) }
 
     /** Ends the session. It is COMPLETED only if the planned focus time was actually reached; otherwise ENDED_EARLY. */
@@ -58,7 +66,7 @@ class FocusSessionRepository @Inject constructor(
         val closed = closePause(s, now)
         val state = if (TimerMath.remainingMs(closed, now) <= 0) SessionState.COMPLETED else SessionState.ENDED_EARLY
         finish(closed, state, now)
-    }
+    }?.also { runCatching { summary.onSessionStopped(it, it.state) } }
 
     /** Idempotent: completes a running session whose planned time has passed, using the exact due time. */
     suspend fun completeIfDue(): FocusSession? = mutex.withLock {
@@ -71,7 +79,7 @@ class FocusSessionRepository @Inject constructor(
             }
         }
         completed
-    }
+    }.also { c -> if (c != null) runCatching { summary.onSessionStopped(c, SessionState.COMPLETED) } }
 
     suspend fun recordInterruption(sessionId: String) = mutex.withLock {
         dao.getById(sessionId)?.let { if (it.state.isActive) dao.upsert(it.copy(interruptionCount = it.interruptionCount + 1)) }
@@ -84,6 +92,8 @@ class FocusSessionRepository @Inject constructor(
     private suspend fun finish(s: FocusSession, state: SessionState, endMs: Long): FocusSession {
         val f = s.copy(state = state, actualEndMs = endMs, breakStartMs = null)
         dao.upsert(f); actionDao.setSessionOutcome(s.id, state.name)
+        timeline.log(s.id, if (state == SessionState.COMPLETED) TimelineType.COMPLETED else TimelineType.ENDED_EARLY,
+            "${TimerMath.focusedMs(f, endMs) / 60_000} of ${TimerMath.plannedMinutes(f)} min focused", atMs = endMs)
         return f
     }
 

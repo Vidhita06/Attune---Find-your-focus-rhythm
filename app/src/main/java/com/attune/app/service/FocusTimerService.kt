@@ -1,4 +1,4 @@
-﻿package com.attune.app.service
+package com.attune.app.service
 import android.Manifest
 import android.app.*
 import android.content.Context
@@ -46,8 +46,7 @@ class FocusTimerService : Service() {
         if (!ok) { stopSelf(); return START_NOT_STICKY }
         if (loop?.isActive != true) loop = scope.launch {
             while (isActive) {
-                val completed = sessions.completeIfDue()
-                if (completed != null) notifyDone(TimerMath.plannedMinutes(completed))
+                sessions.completeIfDue() // the completion notification is posted by FocusSummaryNotifier
                 val s = sessions.getActive()
                 if (s == null) { stopForeground(STOP_FOREGROUND_REMOVE); stopSelf(); break }
                 val now = System.currentTimeMillis(); val left = (TimerMath.remainingMs(s, now) + 59_999) / 60_000
@@ -68,12 +67,5 @@ class FocusTimerService : Service() {
         .setSmallIcon(android.R.drawable.ic_lock_idle_alarm).setContentIntent(contentIntent()).setOngoing(true).setOnlyAlertOnce(true).setSilent(true).build()
     private fun canNotify() = Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     private fun update(text: String) { if (canNotify()) runCatching { getSystemService(NotificationManager::class.java).notify(NOTIF_ID, build("Attune", text)) } }
-    private fun notifyDone(min: Int) {
-        if (!canNotify()) return
-        val n = NotificationCompat.Builder(this, DONE_CHANNEL_ID).setContentTitle("Focus session complete")
-            .setContentText("$min minutes done. Your queued notifications are ready to review.")
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm).setContentIntent(contentIntent()).setAutoCancel(true).build()
-        runCatching { getSystemService(NotificationManager::class.java).notify(DONE_NOTIF_ID, n) }
-    }
     override fun onDestroy() { super.onDestroy(); scope.cancel() }
 }

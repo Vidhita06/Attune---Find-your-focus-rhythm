@@ -1,4 +1,4 @@
-﻿package com.attune.core.model
+package com.attune.core.model
 import androidx.room.*
 
 /** FOCUS = timer running; PAUSED/BREAK = timer frozen; COMPLETED = planned time reached; ENDED_EARLY = user ended before planned time. */
@@ -44,7 +44,15 @@ data class QueuedNotification(
     @ColumnInfo(defaultValue="0") val sourceRemoved:Boolean=false,
     val ruleApplied:String?=null,
     val androidCategory:String?=null,
-    val statusChangedMs:Long?=null
+    val statusChangedMs:Long?=null,
+    // v3: link to the decision record, risk shown in the list, privacy flags
+    val decisionId:String?=null,
+    val focusRisk:String?=null,
+    @ColumnInfo(defaultValue="0") val isSensitive:Boolean=false,
+    /** REVIEW routing: the original Android notification was left visible; this is a copy for review. */
+    @ColumnInfo(defaultValue="0") val keptVisible:Boolean=false,
+    /** Title/preview were removed after the retention window (see QueueRepository.scrubOldText). */
+    @ColumnInfo(defaultValue="0") val textScrubbed:Boolean=false
 )
 
 @Entity(tableName="predictions")
@@ -80,8 +88,47 @@ data class Feedback(@PrimaryKey val id:String, val notificationId:String, val ac
 @Entity(tableName="attention_profile_summary", indices=[Index("category",unique=true)])
 data class AttentionProfileSummary(@PrimaryKey val category:String, val observationCount:Int=0, val avgTimeAwayMin:Float=0f, val avgRecoveryMin:Float=0f, val openCount:Int=0, val delayCount:Int=0, val dismissCount:Int=0, val lastUpdatedMs:Long=System.currentTimeMillis())
 
+/** Optional self-reported energy. v3 adds a 1–5 [score] (legacy rows: LOW=2, MODERATE=3, HIGH=4) and when it was recorded. */
 @Entity(tableName="energy_checkins")
-data class EnergyCheckIn(@PrimaryKey val id:String, val level:EnergyLevel, val timestampMs:Long, val sessionId:String?=null, @ColumnInfo(defaultValue="0") val isDemo:Boolean=false)
+data class EnergyCheckIn(@PrimaryKey val id:String, val level:EnergyLevel, val timestampMs:Long, val sessionId:String?=null, @ColumnInfo(defaultValue="0") val isDemo:Boolean=false,
+    @ColumnInfo(defaultValue="3") val score:Int=3,
+    /** BEFORE / AFTER a session, or null for an anytime check-in. */
+    val phase:String?=null) {
+    companion object {
+        fun levelFor(score:Int) = when { score <= 2 -> EnergyLevel.LOW; score >= 4 -> EnergyLevel.HIGH; else -> EnergyLevel.MODERATE }
+    }
+}
+
+/**
+ * One row per notification Attune evaluated (deduplicated by [dedupKey], so updates to the same Android notification
+ * increment [updateCount] instead of adding rows). Stores only metadata, scores and generic reasons — never message text.
+ */
+@Entity(tableName="notification_decisions", indices=[Index(value=["dedupKey"], unique=true), Index("decidedAtMs"), Index("sessionId")])
+data class NotificationDecisionRecord(
+    @PrimaryKey val id:String, val dedupKey:String, val packageName:String, val appLabel:String, val category:String,
+    val postedAtMs:Long, val decidedAtMs:Long, val sessionId:String?, val phase:String, val routing:String, val focusRisk:String,
+    val importance:String?, val pImportant:Float?, val pUrgent:Float?, val pDistracting:Float?, val pAction:Float?, val confidence:Float?,
+    val personalBias:Float?, val source:String, val reasons:String, val modelVersion:String?,
+    val hasLink:Boolean, val linkSafety:String, val isSensitive:Boolean, val evidence:String?, val senderKey:String?,
+    val overrodeModel:Boolean, val modelRouting:String?, val matchedRule:String?, val notificationId:String?,
+    val isDemo:Boolean, val updateCount:Int
+)
+
+/** Explicit feedback on a decision. Personalization is recomputed from these rows, so deleting them removes their effect. */
+@Entity(tableName="feedback_events", indices=[Index("createdMs")])
+data class FeedbackEvent(
+    @PrimaryKey val id:String, val createdMs:Long, val kind:String, val packageName:String, val appLabel:String, val category:String,
+    val senderKey:String?, val senderHint:String?, val notificationId:String?, val decisionId:String?,
+    val predictedRisk:String?, val predictedRouting:String?, val isDemo:Boolean
+)
+
+/** Explicit user rule (ALLOW or DEFER) for an app, contact, keyword or category. */
+@Entity(tableName="user_rules")
+data class UserRuleRecord(@PrimaryKey val id:String, val kind:String, val value:String, val action:String, val label:String, val createdMs:Long, val source:String)
+
+/** Timeline entry for a focus session (start, pause, resume, notification held/allowed, opened…). [detail] never contains message text. */
+@Entity(tableName="session_events", indices=[Index("sessionId")])
+data class SessionEvent(@PrimaryKey val id:String, val sessionId:String, val atMs:Long, val type:String, val detail:String?, val isDemo:Boolean)
 
 /** Query result: a self-reported observation joined with its notification category. */
 data class CategoryObservation(val category:String, val timeAway:Float, val recovery:Float)
