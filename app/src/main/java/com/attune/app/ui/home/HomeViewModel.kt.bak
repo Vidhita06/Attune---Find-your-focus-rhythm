@@ -1,0 +1,13 @@
+﻿package com.attune.app.ui.home
+import androidx.lifecycle.ViewModel; import androidx.lifecycle.viewModelScope
+import com.attune.core.data.db.dao.FocusSessionDao; import com.attune.core.data.db.dao.QueuedNotificationDao
+import com.attune.core.model.FocusSession; import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.*; import java.util.Calendar; import javax.inject.Inject
+data class HomeUiState(val greeting:String="Good morning",val focusTime:String="0h 0m",val sessions:Int=0,val reviewed:Int=0,val session:FocusSession?=null,val pending:Int=0,val isDemo:Boolean=true)
+@HiltViewModel class HomeViewModel @Inject constructor(private val sessionDao:FocusSessionDao,private val notifDao:QueuedNotificationDao):ViewModel(){
+    val state:StateFlow<HomeUiState>=combine(sessionDao.observeLatest(),notifDao.observePendingCount()){s,p->
+        val h=Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val g=when{h<12->"Good morning";h<17->"Good afternoon";else->"Good evening"}
+        HomeUiState(g,"2h 45m",4,12,s,p,true)
+    }.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),HomeUiState())
+}

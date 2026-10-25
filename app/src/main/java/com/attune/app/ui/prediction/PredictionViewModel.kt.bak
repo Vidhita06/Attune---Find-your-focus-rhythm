@@ -1,0 +1,26 @@
+﻿package com.attune.app.ui.prediction
+import android.content.Context; import android.content.Intent; import androidx.lifecycle.ViewModel; import androidx.lifecycle.viewModelScope
+import com.attune.core.data.db.dao.*; import com.attune.core.model.*; import com.attune.prediction.PredictionEngine
+import com.attune.prediction.model.NotificationContext; import com.attune.prediction.model.SessionContext; import com.attune.prediction.model.UserObservation
+import dagger.hilt.android.lifecycle.HiltViewModel; import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.*; import kotlinx.coroutines.launch; import java.util.UUID; import javax.inject.Inject
+import com.attune.prediction.model.Prediction as EngPred; import com.attune.prediction.model.RiskLevel as EngRisk
+data class PredState(val notif:QueuedNotification?=null,val pred:EngPred?=null,val loading:Boolean=true)
+@HiltViewModel class PredictionViewModel @Inject constructor(
+    private val notifDao:QueuedNotificationDao,private val predDao:PredictionDao,private val feedbackDao:FeedbackDao,
+    private val actionDao:UserActionDao,private val profileDao:AttentionProfileSummaryDao,
+    private val sessionDao:FocusSessionDao,private val engine:PredictionEngine,@ApplicationContext private val ctx:Context
+):ViewModel(){
+    private val _s=MutableStateFlow(PredState()); val state:StateFlow<PredState>=_s
+    fun load(id:String){ viewModelScope.launch {
+        val n=notifDao.getById(id)?:return@launch; val s=sessionDao.getLatest()
+        val h=feedbackDao.getAllWithTimeAway().mapNotNull{f->notifDao.getById(f.notificationId)?.let{UserObservation(it.category,f.reportedTimeAwayMin?:0f,f.reportedRecoveryMin?:0f)}}
+        val sc=SessionContext(s?.sessionStartMs?:System.currentTimeMillis(),s?.plannedEndMs?:System.currentTimeMillis()+2700000,0f)
+        val p=engine.predict(NotificationContext(n.packageName,n.category,n.title,n.previewText,n.postTimeMs),sc,h)
+        predDao.upsert(Prediction(UUID.randomUUID().toString(),n.id,when(p.risk){EngRisk.HIGH->RiskLevel.HIGH;EngRisk.MED->RiskLevel.MED;EngRisk.LOW->RiskLevel.LOW},p.timeAwayMin,p.recoveryMin,p.explanation,p.confidence,p.observationCount,p.delayScenario))
+        _s.value=PredState(n,p,false)
+    }}
+    fun openNow(id:String,done:(String)->Unit){ viewModelScope.launch { val n=notifDao.getById(id)?:return@launch; notifDao.updateStatus(id,NotificationStatus.REVIEWED); actionDao.upsert(UserAction(UUID.randomUUID().toString(),id,null,ActionType.OPENED)); ctx.packageManager.getLaunchIntentForPackage(n.packageName)?.let{ctx.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))}; done(id) }}
+    fun delay(id:String,done:(String)->Unit){ viewModelScope.launch { notifDao.updateStatus(id,NotificationStatus.DELAYED); actionDao.upsert(UserAction(UUID.randomUUID().toString(),id,null,ActionType.DELAYED)); done(id) }}
+    fun dismiss(id:String,done:(String)->Unit){ viewModelScope.launch { notifDao.updateStatus(id,NotificationStatus.DISMISSED); actionDao.upsert(UserAction(UUID.randomUUID().toString(),id,null,ActionType.DISMISSED)); done(id) }}
+}

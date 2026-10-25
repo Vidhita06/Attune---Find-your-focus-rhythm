@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.attune.prediction.PolicyAndCounterfactualTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-25T17:24:03" hostname="DESKTOP-O2L0HGQ" time="0.065">
+  <properties/>
+  <testcase name="digitsAloneAreNotOtp" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.036"/>
+  <testcase name="ongoingIgnored" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.001"/>
+  <testcase name="promoFilteredOnlyWhenEnabled" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.009"/>
+  <testcase name="allowedAppPasses" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.0"/>
+  <testcase name="openedHasNoProtectedEstimateAndReportsMeasurement" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.011"/>
+  <testcase name="callsPass" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.0"/>
+  <testcase name="delayDuringFocusEstimatesProtectedTime" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.001"/>
+  <testcase name="socialIsQueued" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.0"/>
+  <testcase name="delayOutsideFocusProtectsNothing" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.001"/>
+  <testcase name="groupSummaryIgnored" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.0"/>
+  <testcase name="otpPasses" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.0"/>
+  <testcase name="ownAppIgnored" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.001"/>
+  <testcase name="priorityContactNeedsWordMatch" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.0"/>
+  <testcase name="unqueuedCategoryAllowed" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.0"/>
+  <testcase name="priorityContactPasses" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.0"/>
+  <testcase name="otpDisabledQueues" classname="com.attune.prediction.PolicyAndCounterfactualTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,16 @@
+{
+  "metadata":      { "note":"Starting assumptions for the baseline estimator. Not measured from users; replace with calibrated values or a trained model later." },
+  "short_video":   { "risk":"HIGH","timeAwayMin":22,"recoveryMin":10,"description":"Short-form video feeds are designed to keep you watching." },
+  "social":        { "risk":"HIGH","timeAwayMin":15,"recoveryMin":8, "description":"Social feeds often lead to scrolling beyond the original notification." },
+  "messaging":     { "risk":"LOW", "timeAwayMin":4, "recoveryMin":2, "description":"Quick replies tend to be brief." },
+  "email":         { "risk":"MED", "timeAwayMin":8, "recoveryMin":5, "description":"Email often requires switching context." },
+  "gaming":        { "risk":"HIGH","timeAwayMin":25,"recoveryMin":12,"description":"Games are designed to be immersive." },
+  "shopping":      { "risk":"MED", "timeAwayMin":10,"recoveryMin":5, "description":"Shopping alerts can turn into browsing." },
+  "news":          { "risk":"MED", "timeAwayMin":12,"recoveryMin":6, "description":"News feeds invite extended reading." },
+  "entertainment": { "risk":"HIGH","timeAwayMin":18,"recoveryMin":9, "description":"Entertainment apps are absorbing." },
+  "productivity":  { "risk":"LOW", "timeAwayMin":3, "recoveryMin":1, "description":"Work tool alerts are often task-relevant." },
+  "finance":       { "risk":"LOW", "timeAwayMin":3, "recoveryMin":2, "description":"Finance alerts are typically brief." },
+  "health":        { "risk":"LOW", "timeAwayMin":2, "recoveryMin":1, "description":"Health reminders are usually quick." },
+  "promotion":     { "risk":"LOW", "timeAwayMin":5, "recoveryMin":3, "description":"Promotions can lead to browsing." },
+  "unknown":       { "risk":"MED", "timeAwayMin":8, "recoveryMin":4, "description":"General starting estimate for uncategorised apps." }
+}

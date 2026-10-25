@@ -1,0 +1,709 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "c0f57e141c9aa5a7f3534d31abaf5305",
+    "entities": [
+      {
+        "tableName": "user_profile",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `focusDurationMin` INTEGER NOT NULL, `breakDurationMin` INTEGER NOT NULL, `onboardingComplete` INTEGER NOT NULL, `selectedAppPackages` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "focusDurationMin",
+            "columnName": "focusDurationMin",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "breakDurationMin",
+            "columnName": "breakDurationMin",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "onboardingComplete",
+            "columnName": "onboardingComplete",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "selectedAppPackages",
+            "columnName": "selectedAppPackages",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "focus_sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `sessionStartMs` INTEGER NOT NULL, `plannedEndMs` INTEGER NOT NULL, `actualEndMs` INTEGER, `state` TEXT NOT NULL, `breakStartMs` INTEGER, `isDemo` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `plannedDurationMin` INTEGER NOT NULL DEFAULT 0, `totalPausedMs` INTEGER NOT NULL DEFAULT 0, `pauseCount` INTEGER NOT NULL DEFAULT 0, `interruptionCount` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionStartMs",
+            "columnName": "sessionStartMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "plannedEndMs",
+            "columnName": "plannedEndMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actualEndMs",
+            "columnName": "actualEndMs",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "breakStartMs",
+            "columnName": "breakStartMs",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isDemo",
+            "columnName": "isDemo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "plannedDurationMin",
+            "columnName": "plannedDurationMin",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "totalPausedMs",
+            "columnName": "totalPausedMs",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "pauseCount",
+            "columnName": "pauseCount",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "interruptionCount",
+            "columnName": "interruptionCount",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "queued_notifications",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `packageName` TEXT NOT NULL, `category` TEXT NOT NULL, `title` TEXT, `previewText` TEXT, `dedupKey` TEXT NOT NULL, `postTimeMs` INTEGER NOT NULL, `status` TEXT NOT NULL, `contentIntentData` TEXT, `isGroupSummary` INTEGER NOT NULL, `isDemo` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `appLabel` TEXT NOT NULL DEFAULT '', `sbnKey` TEXT, `groupCount` INTEGER NOT NULL DEFAULT 1, `lastUpdatedMs` INTEGER NOT NULL DEFAULT 0, `wasSuppressed` INTEGER NOT NULL DEFAULT 0, `sourceRemoved` INTEGER NOT NULL DEFAULT 0, `ruleApplied` TEXT, `androidCategory` TEXT, `statusChangedMs` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packageName",
+            "columnName": "packageName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "previewText",
+            "columnName": "previewText",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "dedupKey",
+            "columnName": "dedupKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "postTimeMs",
+            "columnName": "postTimeMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contentIntentData",
+            "columnName": "contentIntentData",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isGroupSummary",
+            "columnName": "isGroupSummary",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDemo",
+            "columnName": "isDemo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "appLabel",
+            "columnName": "appLabel",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "sbnKey",
+            "columnName": "sbnKey",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "groupCount",
+            "columnName": "groupCount",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "lastUpdatedMs",
+            "columnName": "lastUpdatedMs",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "wasSuppressed",
+            "columnName": "wasSuppressed",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "sourceRemoved",
+            "columnName": "sourceRemoved",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "ruleApplied",
+            "columnName": "ruleApplied",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "androidCategory",
+            "columnName": "androidCategory",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "statusChangedMs",
+            "columnName": "statusChangedMs",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_queued_notifications_dedupKey",
+            "unique": true,
+            "columnNames": [
+              "dedupKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_queued_notifications_dedupKey` ON `${TABLE_NAME}` (`dedupKey`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "predictions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `notificationId` TEXT NOT NULL, `risk` TEXT NOT NULL, `timeAwayMin` REAL NOT NULL, `recoveryMin` REAL NOT NULL, `explanation` TEXT NOT NULL, `confidence` REAL NOT NULL, `observationCount` INTEGER NOT NULL, `delayScenario` TEXT NOT NULL, `isEstimate` INTEGER NOT NULL, `isDemo` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `modelVersion` TEXT, `factorsSummary` TEXT, `sessionStateAtPrediction` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notificationId",
+            "columnName": "notificationId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "risk",
+            "columnName": "risk",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeAwayMin",
+            "columnName": "timeAwayMin",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recoveryMin",
+            "columnName": "recoveryMin",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "explanation",
+            "columnName": "explanation",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "observationCount",
+            "columnName": "observationCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "delayScenario",
+            "columnName": "delayScenario",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isEstimate",
+            "columnName": "isEstimate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDemo",
+            "columnName": "isDemo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modelVersion",
+            "columnName": "modelVersion",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "factorsSummary",
+            "columnName": "factorsSummary",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sessionStateAtPrediction",
+            "columnName": "sessionStateAtPrediction",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "user_actions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `notificationId` TEXT NOT NULL, `predictionId` TEXT, `actionType` TEXT NOT NULL, `actionTimeMs` INTEGER NOT NULL, `isDemo` INTEGER NOT NULL, `sessionId` TEXT, `sessionState` TEXT, `category` TEXT, `launchAttempted` INTEGER NOT NULL DEFAULT 0, `launchResult` TEXT, `launchedAtMs` INTEGER, `returnedAtMs` INTEGER, `predictedTimeAwayMin` REAL, `predictedRecoveryMin` REAL, `sessionOutcome` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notificationId",
+            "columnName": "notificationId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "predictionId",
+            "columnName": "predictionId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "actionType",
+            "columnName": "actionType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actionTimeMs",
+            "columnName": "actionTimeMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDemo",
+            "columnName": "isDemo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sessionState",
+            "columnName": "sessionState",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "launchAttempted",
+            "columnName": "launchAttempted",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "launchResult",
+            "columnName": "launchResult",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "launchedAtMs",
+            "columnName": "launchedAtMs",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "returnedAtMs",
+            "columnName": "returnedAtMs",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "predictedTimeAwayMin",
+            "columnName": "predictedTimeAwayMin",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "predictedRecoveryMin",
+            "columnName": "predictedRecoveryMin",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sessionOutcome",
+            "columnName": "sessionOutcome",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "feedback",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `notificationId` TEXT NOT NULL, `actionId` TEXT NOT NULL, `reportedTimeAwayMin` REAL, `reportedRecoveryMin` REAL, `wasSkipped` INTEGER NOT NULL, `isDemo` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notificationId",
+            "columnName": "notificationId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actionId",
+            "columnName": "actionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reportedTimeAwayMin",
+            "columnName": "reportedTimeAwayMin",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "reportedRecoveryMin",
+            "columnName": "reportedRecoveryMin",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "wasSkipped",
+            "columnName": "wasSkipped",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDemo",
+            "columnName": "isDemo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "attention_profile_summary",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`category` TEXT NOT NULL, `observationCount` INTEGER NOT NULL, `avgTimeAwayMin` REAL NOT NULL, `avgRecoveryMin` REAL NOT NULL, `openCount` INTEGER NOT NULL, `delayCount` INTEGER NOT NULL, `dismissCount` INTEGER NOT NULL, `lastUpdatedMs` INTEGER NOT NULL, PRIMARY KEY(`category`))",
+        "fields": [
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "observationCount",
+            "columnName": "observationCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avgTimeAwayMin",
+            "columnName": "avgTimeAwayMin",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avgRecoveryMin",
+            "columnName": "avgRecoveryMin",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "openCount",
+            "columnName": "openCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "delayCount",
+            "columnName": "delayCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dismissCount",
+            "columnName": "dismissCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastUpdatedMs",
+            "columnName": "lastUpdatedMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "category"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_attention_profile_summary_category",
+            "unique": true,
+            "columnNames": [
+              "category"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_attention_profile_summary_category` ON `${TABLE_NAME}` (`category`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "energy_checkins",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `level` TEXT NOT NULL, `timestampMs` INTEGER NOT NULL, `sessionId` TEXT, `isDemo` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "level",
+            "columnName": "level",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestampMs",
+            "columnName": "timestampMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isDemo",
+            "columnName": "isDemo",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c0f57e141c9aa5a7f3534d31abaf5305')"
+    ]
+  }
+}

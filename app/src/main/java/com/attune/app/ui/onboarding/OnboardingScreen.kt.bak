@@ -1,0 +1,23 @@
+﻿package com.attune.app.ui.onboarding
+import android.content.Intent; android.provider.Settings; import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape; import androidx.compose.material.icons.Icons; import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.*; import androidx.compose.runtime.*; import androidx.compose.ui.Alignment; import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color; import androidx.compose.ui.platform.LocalContext; import androidx.compose.ui.text.font.FontWeight; import androidx.compose.ui.unit.dp
+import com.attune.app.ui.components.InspirationQuote; import com.attune.app.ui.theme.FocusBlue; import com.attune.app.util.Quotes
+@Composable fun OnboardingScreen(onComplete:()->Unit){
+    val ctx=LocalContext.current; val q=Quotes.forOnboarding()
+    Column(Modifier.fillMaxSize().padding(horizontal=24.dp),horizontalAlignment=Alignment.CenterHorizontally){
+        Spacer(Modifier.height(48.dp)); Text("Welcome to Attune",style=MaterialTheme.typography.headlineLarge.copy(fontWeight=FontWeight.Bold)); Spacer(Modifier.height(8.dp))
+        Text("Your personal attention digital twin.",style=MaterialTheme.typography.bodyLarge,color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f)); Spacer(Modifier.height(40.dp))
+        Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(16.dp)){Column(Modifier.padding(20.dp)){
+            Row(verticalAlignment=Alignment.CenterVertically){Icon(Icons.Filled.Notifications,null,tint=FocusBlue,modifier=Modifier.size(24.dp));Spacer(Modifier.width(12.dp));Text("Notification Access",style=MaterialTheme.typography.titleMedium.copy(fontWeight=FontWeight.SemiBold))}
+            Spacer(Modifier.height(8.dp)); Text("Attune needs notification access to queue interruptions during focus sessions. All processing is on-device â€” nothing is shared.",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.7f))
+            Spacer(Modifier.height(16.dp)); Button(onClick={ctx.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))},Modifier.fillMaxWidth(),shape=RoundedCornerShape(12.dp),colors=ButtonDefaults.buttonColors(containerColor=FocusBlue)){Text("Open Notification Settings",color=Color.White)}
+        }}
+        Spacer(Modifier.height(16.dp))
+        Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(16.dp)){Column(Modifier.padding(20.dp)){Text("Privacy",style=MaterialTheme.typography.titleMedium.copy(fontWeight=FontWeight.SemiBold));Spacer(Modifier.height(8.dp));Text("All data stays on your device. No accounts. No uploads. Delete everything anytime in Profile.",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.7f))}}
+        Spacer(Modifier.weight(1f)); InspirationQuote(q.text,q.author); Spacer(Modifier.height(16.dp))
+        Button(onClick=onComplete,Modifier.fillMaxWidth().height(56.dp),shape=RoundedCornerShape(16.dp),colors=ButtonDefaults.buttonColors(containerColor=FocusBlue)){Text("Get Started",color=Color.White,style=MaterialTheme.typography.titleMedium)}
+        Spacer(Modifier.height(32.dp))
+    }
+}

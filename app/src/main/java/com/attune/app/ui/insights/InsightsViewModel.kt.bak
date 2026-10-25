@@ -1,0 +1,16 @@
+﻿package com.attune.app.ui.insights
+import androidx.lifecycle.ViewModel; import androidx.lifecycle.viewModelScope
+import com.attune.core.data.db.dao.*; import com.attune.core.model.ActionType; import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.*; import java.text.SimpleDateFormat; import java.util.*; import javax.inject.Inject
+data class RecentItem(val title:String,val time:String,val action:ActionType,val pkg:String)
+data class InsightsState(val week:List<Int>=List(7){0},val total:Int=0,val delta:Int=0,val recent:List<RecentItem>= emptyList(),val hasData:Boolean=false,val isDemo:Boolean=true)
+@HiltViewModel class InsightsViewModel @Inject constructor(private val sessionDao:FocusSessionDao,private val notifDao:QueuedNotificationDao,private val actionDao:UserActionDao):ViewModel(){
+    val state:StateFlow<InsightsState>=combine(sessionDao.observeAllIncDemo(),notifDao.observeRecent(),actionDao.observeAll()){sessions,notifs,actions->
+        val now=System.currentTimeMillis(); val day=86_400_000L
+        val week=(0..6).map{d->val s=now-(d+1)*day;val e=now-d*day;sessions.count{it.sessionStartMs in s..e}}.reversed()
+        val total=week.sum(); val last=sessions.count{now-it.sessionStartMs in 7*day..14*day}
+        val recent=notifs.take(10).map{n->val a=actions.firstOrNull{it.notificationId==n.id};RecentItem(n.title?:n.packageName.substringAfterLast("."),fmt(n.postTimeMs),a?.actionType?:ActionType.DISMISSED,n.packageName)}
+        InsightsState(week,total,total-last,recent,sessions.size>=2||notifs.size>=3,sessions.any{it.isDemo})
+    }.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),InsightsState())
+    private fun fmt(ms:Long):String{val diff=System.currentTimeMillis()-ms;return when{diff<3600000->"Today, ${SimpleDateFormat("h:mm a",Locale.getDefault()).format(Date(ms))}";diff<86400000->"Yesterday, ${SimpleDateFormat("h:mm a",Locale.getDefault()).format(Date(ms))}";else->SimpleDateFormat("EEE, h:mm a",Locale.getDefault()).format(Date(ms))}}
+}

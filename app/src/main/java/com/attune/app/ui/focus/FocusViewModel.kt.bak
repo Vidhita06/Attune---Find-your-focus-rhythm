@@ -1,0 +1,16 @@
+﻿package com.attune.app.ui.focus
+import android.content.Context; import androidx.lifecycle.ViewModel; import androidx.lifecycle.viewModelScope
+import com.attune.app.service.FocusTimerService; import com.attune.core.data.db.dao.FocusSessionDao; import com.attune.core.data.db.dao.QueuedNotificationDao
+import com.attune.core.model.FocusSession; import dagger.hilt.android.lifecycle.HiltViewModel; import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.*; import javax.inject.Inject
+data class FocusUiState(val session:FocusSession?=null,val remaining:Long=45,val pending:Int=0,val progress:Float=0f)
+@HiltViewModel class FocusViewModel @Inject constructor(private val sessionDao:FocusSessionDao,private val notifDao:QueuedNotificationDao,@ApplicationContext private val ctx:Context):ViewModel(){
+    val state:StateFlow<FocusUiState>=combine(sessionDao.observeLatest(),notifDao.observePendingCount()){s,p->
+        val rem=if(s!=null)((s.plannedEndMs-System.currentTimeMillis())/60_000).coerceAtLeast(0) else 45L
+        val total=if(s!=null)(s.plannedEndMs-s.sessionStartMs)/60_000L else 45L
+        FocusUiState(s,rem,p,if(total>0)(1f-rem.toFloat()/total).coerceIn(0f,1f) else 0f)
+    }.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),FocusUiState())
+    fun startSession(min:Int=45){ctx.startForegroundService(FocusTimerService.startIntent(ctx,min))}
+    fun takeBreak(){ctx.startService(FocusTimerService.breakIntent(ctx))}
+    fun endSession(){ctx.startService(FocusTimerService.stopIntent(ctx))}
+}
