@@ -17,6 +17,9 @@ object TextFeaturizer {
         return sb.toString()
     }
 
+    /** Removes URLs so the model can be run on the message without any link signal (see NotificationDecisionEngine). */
+    fun stripLinks(s: String?): String? = s?.let { raw -> URL.replace(fold(raw), " ").trim().ifEmpty { null } }
+
     fun tokens(s: String?): List<String> =
         URL.replace(fold(s), " urltoken ").split(SPLIT).filter { it.isNotEmpty() }.map { t ->
             if (t.all { it in '0'..'9' }) (if (t.length in 4..8) "codetoken" else "numtoken") else t

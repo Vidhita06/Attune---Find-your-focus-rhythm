@@ -11,7 +11,15 @@ data class IncomingNotification(
     val androidCategory: String?,
     val isOngoing: Boolean,
     val isGroupSummary: Boolean,
-    val isClearable: Boolean
+    val isClearable: Boolean,
+    /** Stable id of the conversation when the app exposes one (shortcut id), else null. Used in memory only, never stored. */
+    val conversationId: String? = null,
+    /** True only when Android itself reports an "important/priority conversation" for this notification (API 30+). */
+    val priorityConversation: Boolean = false,
+    /** Messages seen from this conversation in the last few minutes, including this one (1 = no burst). */
+    val burstCount: Int = 1,
+    /** Attune held an earlier message from this conversation a few minutes ago (in-memory memory kept by the listener, never persisted). */
+    val previouslyHeld: Boolean = false
 )
 
 data class PolicySettings(

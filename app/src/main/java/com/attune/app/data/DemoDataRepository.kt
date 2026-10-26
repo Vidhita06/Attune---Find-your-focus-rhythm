@@ -41,6 +41,11 @@ class DemoDataRepository @Inject constructor(
         if (settings.current().demoEnabled && (!settings.isDemoSeeded() || settings.demoSeedVersion() < SEED_VERSION)) { deleteDemoRows(); seed() }
     }
 
+    /** Demo mode is opt-in. When it is off, any sample rows left by an earlier build are deleted so they can't be mistaken for real data. */
+    suspend fun purgeIfDisabled() = mutex.withLock {
+        if (!settings.current().demoEnabled) { deleteDemoRows(); settings.setDemoSeeded(false) }
+    }
+
     suspend fun reset() = mutex.withLock { deleteDemoRows(); seed() }
 
     private suspend fun deleteDemoRows() = db.withTransaction {

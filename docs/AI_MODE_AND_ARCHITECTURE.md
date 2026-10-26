@@ -12,6 +12,8 @@ The UI and the notification listener depend only on the `NotificationClassifier`
 
 ## Notification decision flow
 
+> The current, authoritative description of the policy, guard layer, sender levels and thresholds is **docs/DECISION_POLICY.md**. The diagram below is the original overview.
+
 ```
 Android posts a notification
   → FocusListenerService.onNotificationPosted  (title + text are read in memory only)

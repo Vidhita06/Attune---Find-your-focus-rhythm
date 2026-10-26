@@ -15,7 +15,8 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("Boolean", "DEMO_MODE_DEFAULT", "true")
+        // Sample data is opt-in (Profile -> Show demo samples). A fresh install must show only real notifications.
+        buildConfigField("Boolean", "DEMO_MODE_DEFAULT", "false")
     }
     buildTypes {
         release {

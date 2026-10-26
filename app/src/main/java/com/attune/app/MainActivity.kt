@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT), SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT))
         // Load the classifier off the main thread before anything needs it, then seed demo data (which uses it).
-        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) { models.status; runCatching { demo.ensureSeeded() } }
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) { models.status; runCatching { demo.purgeIfDisabled(); demo.ensureSeeded() } }
         handleNavigation(intent)
         setContent { AttuneTheme { AttuneNavHost() } }
     }

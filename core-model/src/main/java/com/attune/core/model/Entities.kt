@@ -7,7 +7,7 @@ enum class SessionState { IDLE, FOCUS, PAUSED, BREAK, COMPLETED, ENDED_EARLY;
     val isFinished get() = this == COMPLETED || this == ENDED_EARLY
 }
 /** REVIEWED is a legacy (schema v1) value and is treated as OPENED. FILTERED = matched a user filter rule (e.g. promotions). */
-enum class NotificationStatus { PENDING, REVIEWED, DELAYED, OPENED, DISMISSED, FILTERED;
+enum class NotificationStatus { PENDING, REVIEWED, DELAYED, OPENED, DISMISSED, FILTERED, RELEASED;  // RELEASED = "Show now": a replacement notification was posted
     val isOpen get() = this == PENDING || this == DELAYED
 }
 enum class ActionType { OPENED, DELAYED, DISMISSED }

@@ -97,6 +97,7 @@ val LocalSnackbar = staticCompositionLocalOf<SnackbarHostState> { error("No Snac
         NotificationStatus.OPENED, NotificationStatus.REVIEWED -> "Opened" to LowRisk
         NotificationStatus.DISMISSED -> "Dismissed" to NavyFaint
         NotificationStatus.FILTERED -> "Filtered" to NavyFaint
+        NotificationStatus.RELEASED -> "Shown again" to LowRisk
     }
     Pill(label, color)
 }

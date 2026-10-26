@@ -34,7 +34,8 @@ class ModelParityTest {
             val o = RiskPolicy.route(NotificationDecisionEngine.applyBias(p, 0.0), model.thresholds, title, text, cat)
             assertEquals("route for '$text'", c["route"].asString, o.routing.name.lowercase().replace("deliver", "allow"))
             assertEquals("risk for '$text'", c["risk"].asString, o.risk.name)
-            assertEquals("link for '$text'", c["link_safety"].asString, LinkAnalyzer.assess(text).safety.name.lowercase())
+            // The link rules moved to Kotlin-only (LinkAnalyzerTest); parity still covers whether a text has a link at all, which feeds routing.
+            assertEquals("has link for '$text'", c["link_safety"].asString != "none", LinkAnalyzer.assess(text).hasLink)
             val ev = c["strong_evidence"].let { if (it.isJsonNull) null else it.asString }
             assertEquals("evidence for '$text'", ev, SafetyRules.strongEvidence(title, text, cat)?.name?.lowercase())
             assertEquals("sensitive for '$text'", c["sensitive"].asBoolean, SafetyRules.isSensitive(title, text, cat))

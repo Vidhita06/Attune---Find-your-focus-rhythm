@@ -45,6 +45,7 @@ private fun pct(v: Float?) = v?.let { "${(it * 100).roundToInt()}%" } ?: "—"
         is PredictionEvent.Message -> snackbar.showSnackbar(e.text)
         is PredictionEvent.OpenedGoFeedback -> onFeedback(e.id)
         PredictionEvent.Back -> onBack()
+        PredictionEvent.ShownAgain -> Unit
     } } }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -78,6 +79,8 @@ private fun pct(v: Float?) = v?.let { "${(it * 100).roundToInt()}%" } ?: "—"
         if (ai != null) DecisionCard(ai, s.feedbackGiven.isNotEmpty()) else InfoBanner(Icons.Outlined.Info, "No AI decision recorded",
             "This item was queued before AI decisions were stored (or by an older version). Category rules applied.")
 
+        if (!n.isSensitive) LinkCard(n.previewText)
+
         // 3. Actions
         if (n.status.isOpen) {
             if (s.failedAttempts > 0) InfoBanner(Icons.Outlined.ErrorOutline, "Last open attempt failed", "You can try again, delay it, or dismiss it.", BannerTone.WARNING)
@@ -88,6 +91,12 @@ private fun pct(v: Float?) = v?.let { "${(it * 100).roundToInt()}%" } ?: "—"
             Text(if (n.isDemo) "Demo sample: opens the app if it's installed; otherwise it's only marked as opened."
                 else if (s.hasOriginalTarget) "Opens the notification's own target when Android allows it. Links are never opened by Attune itself." else "The original target isn't available (e.g. after a restart); Attune will open the app instead.",
                 style = MaterialTheme.typography.labelMedium, color = NavyFaint)
+            if (!(n.keptVisible && !n.sourceRemoved)) {
+                OutlinedButton(onClick = vm::release, enabled = !s.inFlight, modifier = Modifier.fillMaxWidth().height(50.dp), shape = RoundedCornerShape(16.dp)) {
+                    Icon(Icons.Outlined.NotificationsActive, null); Spacer(Modifier.width(6.dp)); Text("Show now (new notification)") }
+                Text("Android can't put the original back. This posts a new notification from Attune: no reply buttons or grouping, and it opens the original only while Attune is running.",
+                    style = MaterialTheme.typography.labelMedium, color = NavyFaint)
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedButton(onClick = vm::delay, enabled = !s.inFlight && n.status != NotificationStatus.DELAYED, modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(16.dp)) {
                     Icon(Icons.Outlined.Schedule, null); Spacer(Modifier.width(6.dp)); Text(if (n.status == NotificationStatus.DELAYED) "Delayed" else "Delay") }
@@ -96,7 +105,7 @@ private fun pct(v: Float?) = v?.let { "${(it * 100).roundToInt()}%" } ?: "—"
             }
         } else {
             val d = s.decision
-            InfoBanner(Icons.Outlined.CheckCircle, when (n.status) { NotificationStatus.OPENED, NotificationStatus.REVIEWED -> "You opened this"; NotificationStatus.DISMISSED -> "You dismissed this"; else -> "Filtered by your settings" },
+            InfoBanner(Icons.Outlined.CheckCircle, when (n.status) { NotificationStatus.OPENED, NotificationStatus.REVIEWED -> "You opened this"; NotificationStatus.DISMISSED -> "You dismissed this"; NotificationStatus.RELEASED -> "Shown again as a new notification"; else -> "Filtered by your settings" },
                 d?.let { "Recorded at ${clockTime(it.actionTimeMs)}" + when (it.launchResult) {
                     LaunchResults.CONTENT_INTENT_SENT -> " · original notification target sent to Android"; LaunchResults.APP_LAUNCHED -> " · app launched"
                     LaunchResults.DEMO_NO_APP -> " · demo sample, nothing launched"; else -> "" } } ?: (n.ruleApplied ?: ""))
@@ -231,8 +240,8 @@ private fun feedbackHelp(k: FeedbackKind) = when (k) {
             SignalRow(Icons.Outlined.Alarm, "Urgency", if ((r.pUrgent ?: 0f) >= 0.5f) "Time-sensitive" else "Can wait", r.pUrgent, "chance it's urgent")
             SignalRow(Icons.Outlined.PhoneAndroid, "Distraction", if ((r.pDistracting ?: 0f) >= 0.5f) "Likely" else "Unlikely", r.pDistracting, "chance it pulls you away")
             SignalRow(Icons.Outlined.TaskAlt, "Action needed", if ((r.pAction ?: 0f) >= 0.5f) "Probably" else "Probably not", r.pAction, "chance it asks you to act")
-            SignalRow(Icons.Outlined.Link, "Link", when (r.linkSafety) { "NONE" -> "No link"; "CAUTION" -> "Caution"; else -> "Can't verify" }, null,
-                when (r.linkSafety) { "NONE" -> ""; "CAUTION" -> "local warning signs found — not opened"; else -> "unknown is not the same as safe" })
+            SignalRow(Icons.Outlined.Link, "Link", when (r.linkSafety) { "NONE" -> "No link"; "HIGH_RISK" -> "High risk"; "CAUTION" -> "Caution"; else -> "Unknown" }, null,
+                when (r.linkSafety) { "NONE" -> ""; "HIGH_RISK" -> "several phishing warning signs — not opened"; "CAUTION" -> "local warning signs found — not opened"; else -> "unknown is not the same as safe" })
             Spacer(Modifier.height(4.dp))
             val c = r.confidence ?: 0f
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -273,5 +282,30 @@ private fun reasonIcon(k: ReasonKind): ImageVector = when (k) {
             if (sub.isNotEmpty()) Text(if (p != null) "${pct(p)} $sub" else sub, style = MaterialTheme.typography.labelMedium, color = NavyFaint)
         }
         Text(value, style = MaterialTheme.typography.labelLarge, color = Navy)
+    }
+}
+
+/**
+ * Links in the stored preview, analysed on screen by the local, offline LinkAnalyzer (nothing is opened or sent anywhere). Shown only while the
+ * preview is still stored; the decision log keeps just the level. Link risk is separate from importance and never says "safe".
+ */
+@Composable private fun LinkCard(preview: String?) {
+    val a = remember(preview) { com.attune.prediction.classifier.LinkAnalyzer.assess(preview) }
+    if (!a.hasLink) return
+    AttuneCard {
+        Text("Links in this message", style = MaterialTheme.typography.titleMedium, color = Navy)
+        Text("Checked on your phone from the text only. Attune never opens links, and this is not a safety guarantee.", style = MaterialTheme.typography.bodySmall, color = NavyFaint)
+        a.findings.forEach { f ->
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(f.host, style = MaterialTheme.typography.labelLarge, color = Navy, modifier = Modifier.weight(1f))
+                Pill(com.attune.prediction.classifier.LinkAnalyzer.label(f.safety), when (f.safety) {
+                    com.attune.prediction.classifier.LinkSafety.HIGH_RISK -> HighRisk; com.attune.prediction.classifier.LinkSafety.CAUTION -> MedRisk; else -> NavySoft })
+            }
+            (f.signals + f.notes).forEach { Text("• " + com.attune.prediction.classifier.LinkAnalyzer.describe(it), style = MaterialTheme.typography.bodySmall, color = NavySoft) }
+            if (f.signals.isEmpty()) Text("• No warning signs found locally. That does not mean the link is safe.", style = MaterialTheme.typography.bodySmall, color = NavySoft)
+        }
+        Spacer(Modifier.height(6.dp))
+        a.limitations.forEach { Text(it, style = MaterialTheme.typography.labelMedium, color = NavyFaint) }
     }
 }

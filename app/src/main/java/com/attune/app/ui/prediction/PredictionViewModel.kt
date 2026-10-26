@@ -18,7 +18,7 @@ data class EstimateView(
     val delayScenario: String, val modelVersion: String, val storedAtDecision: Boolean
 ) { val confidenceLabel get() = when { coldStart -> "Cold start"; confidence >= 0.6f -> "Higher"; confidence >= 0.35f -> "Medium"; else -> "Low" } }
 
-sealed interface PredictionEvent { data class Message(val text: String) : PredictionEvent; data class OpenedGoFeedback(val id: String) : PredictionEvent; data object Back : PredictionEvent }
+sealed interface PredictionEvent { data class Message(val text: String) : PredictionEvent; data class OpenedGoFeedback(val id: String) : PredictionEvent; data object Back : PredictionEvent; data object ShownAgain : PredictionEvent }
 
 /** The AI/rules decision for this notification, as shown on Before You Open. */
 data class DecisionView(val record: NotificationDecisionRecord, val reasons: List<com.attune.prediction.decision.DecisionReason>, val terms: List<String>)
@@ -101,10 +101,13 @@ data class PredState(
                         ActionType.DELAYED -> PredictionEvent.Back
                         ActionType.DISMISSED -> PredictionEvent.Back
                     }
+                    DecisionResult.Released -> PredictionEvent.ShownAgain
+                    is DecisionResult.ReleaseFailed -> PredictionEvent.Message(r.message)
                     is DecisionResult.LaunchFailed -> PredictionEvent.Message(r.message)
                     is DecisionResult.AlreadyHandled -> PredictionEvent.Message("Already ${r.status.name.lowercase()} — nothing changed.")
                     DecisionResult.NotFound -> PredictionEvent.Message("This notification is no longer in the queue.")
                 }
+                if (ev === PredictionEvent.ShownAgain) _events.emit(PredictionEvent.Message("Posted a replacement notification. The original can't be restored."))
                 if (ev is PredictionEvent.Back) _events.emit(PredictionEvent.Message(if (queue.observe(nid).first()?.status == NotificationStatus.DELAYED) "Delayed until your break." else "Dismissed."))
                 _events.emit(ev)
             } finally { inFlight.value = false }
@@ -122,4 +125,5 @@ data class PredState(
     fun openNow() = act { queue.openNow(it) }
     fun delay() = act { queue.delay(it) }
     fun dismiss() = act { queue.dismiss(it) }
+    fun release() = act { queue.release(it) }
 }

@@ -105,13 +105,18 @@ data class InstalledApp(val packageName: String, val label: String)
             SwitchRow("Filter promotions", "Only applies when the app marks a notification as promotional. Filtered items are kept under Handled.", s.filterPromotions) { vm.setFlag(Flag.FILTER_PROMOS, it) }
         }
 
-        SectionTitle("Priority contacts")
+        SectionTitle("Senders")
         AttuneCard {
-            Text("Messages whose title matches a name here reach you during focus. Many messaging apps put the sender's name in the title, but not all do.", style = MaterialTheme.typography.bodySmall, color = NavySoft)
+            Text("Choose how a sender is treated. Matching uses the notification title, which many messaging apps set to the sender's name (not all do). A sender with no entry is Normal.", style = MaterialTheme.typography.bodySmall, color = NavySoft)
+            Text("Always allow: reaches you during focus.  Priority: never held, ordinary messages stay visible in your queue for review (not treated as an emergency).  Hold: held during focus when the AI is confident; urgent or security wording still stays visible.", style = MaterialTheme.typography.labelMedium, color = NavyFaint)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(contact, { contact = it }, Modifier.weight(1f), singleLine = true, placeholder = { Text("e.g. Mom") })
                 Spacer(Modifier.width(8.dp))
-                FilledTonalButton(onClick = { vm.addContact(contact); contact = "" }, enabled = contact.isNotBlank()) { Text("Add") }
+                FilledTonalButton(onClick = { vm.addContact(contact); contact = "" }, enabled = contact.isNotBlank()) { Text("Always allow") }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { vm.addRule(RuleKind.CONTACT, contact, RuleAction.PRIORITY); contact = "" }, enabled = contact.isNotBlank()) { Text("Priority") }
+                OutlinedButton(onClick = { vm.addRule(RuleKind.CONTACT, contact, RuleAction.DEFER); contact = "" }, enabled = contact.isNotBlank()) { Text("Hold") }
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 s.priorityContacts.sorted().forEach { c -> InputChip(true, { vm.removeContact(c) }, { Text(c) }, trailingIcon = { Icon(Icons.Outlined.Close, "Remove", Modifier.size(16.dp)) }) }

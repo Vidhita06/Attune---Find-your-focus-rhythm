@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.attune.core.data.db.dao.*
 import com.attune.core.model.*
 @Database(entities=[UserProfile::class,FocusSession::class,QueuedNotification::class,Prediction::class,UserAction::class,Feedback::class,AttentionProfileSummary::class,EnergyCheckIn::class,
-    NotificationDecisionRecord::class,FeedbackEvent::class,UserRuleRecord::class,SessionEvent::class], version=3, exportSchema=true)
+    NotificationDecisionRecord::class,FeedbackEvent::class,UserRuleRecord::class,SessionEvent::class], version=4, exportSchema=true)
 @TypeConverters(Converters::class)
 abstract class AttuneDatabase : RoomDatabase() {
     abstract fun userProfileDao(): UserProfileDao
@@ -25,8 +25,18 @@ abstract class AttuneDatabase : RoomDatabase() {
         @Volatile private var INSTANCE: AttuneDatabase? = null
         fun getInstance(ctx: Context): AttuneDatabase = INSTANCE ?: synchronized(this) {
             INSTANCE ?: Room.databaseBuilder(ctx.applicationContext, AttuneDatabase::class.java, "attune.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build().also { INSTANCE = it }
+        }
+
+        /**
+         * v3 -> v4: no table changes. Sender ids moved from an unsalted SHA-256 of "package|name" (guessable from a contact list) to a
+         * per-install HMAC, so every stored legacy id is cleared. Names were never stored, so the old ids cannot be recomputed.
+         * Effect: SENDER-scope learned preferences (the lowest-weighted ones) are reset; app- and category-level preferences, all
+         * feedback events, decisions, queue items and rules are kept. See [Migrations.SQL_3_4].
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) { Migrations.SQL_3_4.forEach(db::execSQL) }
         }
 
         /**
@@ -77,6 +87,10 @@ abstract class AttuneDatabase : RoomDatabase() {
     }
 }
 object Migrations {
+    val SQL_3_4 = listOf(
+        "UPDATE notification_decisions SET senderKey = NULL WHERE senderKey IS NOT NULL",
+        "UPDATE feedback_events SET senderKey = NULL WHERE senderKey IS NOT NULL"
+    )
     val SQL_2_3 = listOf(
         "ALTER TABLE queued_notifications ADD COLUMN decisionId TEXT",
         "ALTER TABLE queued_notifications ADD COLUMN focusRisk TEXT",

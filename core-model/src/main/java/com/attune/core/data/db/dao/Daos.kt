@@ -2,6 +2,20 @@ package com.attune.core.data.db.dao
 import androidx.room.*
 import com.attune.core.model.*
 import kotlinx.coroutines.flow.Flow
+/** Kept as a constant so the JVM migration/retention test runs exactly the SQL that Room runs. */
+object RetentionSql {
+    const val SCRUB_EXPIRED = """UPDATE queued_notifications SET title=NULL, previewText=NULL, textScrubbed=1 WHERE isDemo=0 AND textScrubbed=0 AND (
+        (status NOT IN ('PENDING','DELAYED') AND COALESCE(statusChangedMs, postTimeMs) < :cutoffMs)
+        OR (status IN ('PENDING','DELAYED') AND (
+            EXISTS (SELECT 1 FROM focus_sessions s WHERE s.id = queued_notifications.sessionId AND s.state IN ('COMPLETED','ENDED_EARLY') AND COALESCE(s.actualEndMs, s.plannedEndMs) < :cutoffMs)
+            OR NOT EXISTS (SELECT 1 FROM focus_sessions s WHERE s.id = queued_notifications.sessionId) AND COALESCE(lastUpdatedMs, postTimeMs) < :cutoffMs))
+        OR COALESCE(lastUpdatedMs, postTimeMs) < :hardCutoffMs)"""
+    // Privacy Center deletions (real data only; demo rows are untouched)
+    const val SCRUB_ALL_REAL_TEXT = "UPDATE queued_notifications SET title=NULL, previewText=NULL, textScrubbed=1 WHERE isDemo=0"
+    const val DELETE_REAL_QUEUE = "DELETE FROM queued_notifications WHERE isDemo=0"
+    const val DELETE_REAL_DECISIONS = "DELETE FROM notification_decisions WHERE isDemo=0"
+    const val DELETE_REAL_FEEDBACK_EVENTS = "DELETE FROM feedback_events WHERE isDemo=0"
+}
 @Dao interface UserProfileDao {
     @Query("SELECT * FROM user_profile WHERE id=1") fun observe(): Flow<UserProfile?>
     @Query("SELECT * FROM user_profile WHERE id=1") suspend fun get(): UserProfile?
@@ -31,12 +45,16 @@ import kotlinx.coroutines.flow.Flow
     @Query("SELECT * FROM queued_notifications WHERE isDemo=0 ORDER BY postTimeMs DESC LIMIT 50") fun observeRecent(): Flow<List<QueuedNotification>>
     @Query("SELECT COUNT(*) FROM queued_notifications WHERE status='PENDING'") fun observePendingCount(): Flow<Int>
     @Query("DELETE FROM queued_notifications WHERE isDemo=1") suspend fun deleteDemo()
-    @Query("DELETE FROM queued_notifications WHERE isDemo=0") suspend fun deleteReal()
+    @Query(RetentionSql.DELETE_REAL_QUEUE) suspend fun deleteReal()
     @Query("SELECT * FROM queued_notifications WHERE sessionId=:sessionId AND status IN ('PENDING','DELAYED') AND isDemo=0") suspend fun openForSession(sessionId: String): List<QueuedNotification>
-    /** Privacy retention: drops title/preview of handled items once they are older than [beforeMs]. Pending/delayed items keep their text. */
-    @Query("UPDATE queued_notifications SET title=NULL, previewText=NULL, textScrubbed=1 WHERE isDemo=0 AND textScrubbed=0 AND status NOT IN ('PENDING','DELAYED') AND COALESCE(statusChangedMs, postTimeMs) < :beforeMs")
-    suspend fun scrubHandledTextBefore(beforeMs: Long): Int
-    @Query("UPDATE queued_notifications SET title=NULL, previewText=NULL, textScrubbed=1 WHERE isDemo=0") suspend fun scrubAllRealText(): Int
+    /**
+     * Privacy retention. Removes title/preview of real items when (a) they were handled before [cutoffMs], or (b) they are still
+     * pending/delayed but their focus session ended before [cutoffMs] (the user never came back for them), or (c) their session row
+     * is gone, or (d) they are older than [hardCutoffMs] whatever the session state (backstop for sessions that never closed).
+     */
+    @Query(RetentionSql.SCRUB_EXPIRED)
+    suspend fun scrubExpiredText(cutoffMs: Long, hardCutoffMs: Long): Int
+    @Query(RetentionSql.SCRUB_ALL_REAL_TEXT) suspend fun scrubAllRealText(): Int
     @Query("SELECT COUNT(*) FROM queued_notifications WHERE isDemo=0 AND textScrubbed=0 AND (title IS NOT NULL OR previewText IS NOT NULL)") fun observeRealWithText(): Flow<Int>
 }
 @Dao interface PredictionDao {
@@ -89,7 +107,7 @@ import kotlinx.coroutines.flow.Flow
     @Query("UPDATE notification_decisions SET notificationId=:notificationId WHERE id=:id") suspend fun attachNotification(id: String, notificationId: String)
     @Upsert suspend fun upsert(r: NotificationDecisionRecord)
     @Query("DELETE FROM notification_decisions WHERE isDemo=1") suspend fun deleteDemo()
-    @Query("DELETE FROM notification_decisions WHERE isDemo=0") suspend fun deleteReal()
+    @Query(RetentionSql.DELETE_REAL_DECISIONS) suspend fun deleteReal()
     @Query("SELECT COUNT(*) FROM notification_decisions WHERE isDemo=0") fun observeRealCount(): Flow<Int>
 }
 @Dao interface FeedbackEventDao {
@@ -99,7 +117,7 @@ import kotlinx.coroutines.flow.Flow
     @Query("DELETE FROM feedback_events WHERE id=:id") suspend fun delete(id: String)
     @Query("DELETE FROM feedback_events WHERE isDemo=0 AND kind IN (:kinds) AND ((:scope='APP' AND packageName=:key) OR (:scope='CATEGORY' AND category=:key) OR (:scope='SENDER' AND senderKey=:key))")
     suspend fun deleteForPreference(scope: String, key: String, kinds: List<String>)
-    @Query("DELETE FROM feedback_events WHERE isDemo=0") suspend fun deleteReal()
+    @Query(RetentionSql.DELETE_REAL_FEEDBACK_EVENTS) suspend fun deleteReal()
     @Query("DELETE FROM feedback_events WHERE isDemo=1") suspend fun deleteDemo()
 }
 @Dao interface UserRuleDao {

@@ -79,7 +79,7 @@ class RulesRepository @Inject constructor(private val dao: UserRuleDao) {
         fun UserRuleRecord.toRule(): UserRule? = runCatching { UserRule(id, RuleKind.valueOf(kind), value, RuleAction.valueOf(action), label) }.getOrNull()
         fun labelFor(kind: RuleKind, value: String, action: RuleAction): String {
             val what = when (kind) { RuleKind.APP -> "App $value"; RuleKind.CONTACT -> "Contact “$value”"; RuleKind.KEYWORD -> "Keyword “$value”"; RuleKind.CATEGORY -> AppCategoryMapper.displayName(value) }
-            return if (action == RuleAction.ALLOW) "Always allow · $what" else "Hold during focus · $what"
+            return when (action) { RuleAction.ALLOW -> "Always allow · $what"; RuleAction.PRIORITY -> "Priority sender · $what"; RuleAction.DEFER -> "Hold during focus · $what" }
         }
     }
 }

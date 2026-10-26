@@ -1,6 +1,5 @@
 package com.attune.prediction.decision
 
-import java.security.MessageDigest
 
 /**
  * Explicit feedback the user can give. [importanceVote] is the only thing lightweight personalization uses; the
@@ -48,6 +47,7 @@ class PersonalizationProfile(val preferences: List<LearnedPreference>) {
         const val STEP = 1.0
         const val PRIOR = 2.0
         const val MAX_TOTAL = 1.5
+        const val SENDER_SPILLOVER = 0.5
         val EMPTY = PersonalizationProfile(emptyList())
 
         fun from(signals: List<FeedbackSignal>): PersonalizationProfile {
@@ -55,7 +55,10 @@ class PersonalizationProfile(val preferences: List<LearnedPreference>) {
             for (s in signals) {
                 if (s.kind.importanceVote == 0.0) continue
                 val keys = listOfNotNull(PreferenceScope.APP to s.packageName, PreferenceScope.CATEGORY to s.category, s.senderKey?.let { PreferenceScope.SENDER to it })
-                for (k in keys) { val (n, v) = acc[k] ?: (0 to 0.0); acc[k] = (n + 1) to (v + s.kind.importanceVote) }
+                // Feedback about one identifiable sender counts fully for that sender but only half for the app and category, so
+                // "Rahul's memes are unimportant" does not quietly change how every other chat in that app is treated.
+                for (k in keys) { val (n, v) = acc[k] ?: (0 to 0.0); val share = if (s.senderKey != null && k.first != PreferenceScope.SENDER) SENDER_SPILLOVER else 1.0
+                    acc[k] = (n + 1) to (v + share * s.kind.importanceVote) }
             }
             return PersonalizationProfile(acc.map { (k, nv) ->
                 LearnedPreference(k.first, k.second, nv.first, nv.second, k.first.weight * STEP * nv.second / (nv.first + PRIOR))
@@ -64,11 +67,27 @@ class PersonalizationProfile(val preferences: List<LearnedPreference>) {
     }
 }
 
-/** Stable, non-reversible sender id: SHA-256 of package + normalized title, truncated. Raw names are not stored. */
+/** Keyed hash used for sender ids. Returns null if the key is unavailable (then no sender id is produced at all). */
+fun interface SenderHasher { fun mac(data: ByteArray): ByteArray? }
+
+/**
+ * Sender id = HMAC-SHA256(per-install secret, package | normalized title), truncated. Without the secret a dictionary of
+ * contact names cannot be tested against stored ids (the earlier unsalted SHA-256 could). The app installs a hasher whose key
+ * lives in Android Keystore; until then (and in unit tests) a random per-process key is used, which is safe but not stable.
+ * If the keystore is unusable the app installs [SenderHasher] returning null, so sender-level personalization is simply off.
+ */
 object SenderKey {
+    private class ProcessRandom : SenderHasher {
+        private val key = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
+        override fun mac(data: ByteArray): ByteArray? = javax.crypto.Mac.getInstance("HmacSHA256").run {
+            init(javax.crypto.spec.SecretKeySpec(key, "HmacSHA256")); doFinal(data) }
+    }
+    @Volatile private var hasher: SenderHasher = ProcessRandom()
+    fun install(h: SenderHasher) { hasher = h }
+
     fun of(packageName: String, title: String?): String? {
         val t = title?.trim()?.lowercase()?.takeIf { it.isNotEmpty() } ?: return null
-        val d = MessageDigest.getInstance("SHA-256").digest("$packageName|$t".toByteArray(Charsets.UTF_8))
+        val d = runCatching { hasher.mac("$packageName|$t".toByteArray(Charsets.UTF_8)) }.getOrNull() ?: return null
         return d.take(12).joinToString("") { "%02x".format(it) }
     }
     /** A masked hint for review screens, e.g. "R••••l". */

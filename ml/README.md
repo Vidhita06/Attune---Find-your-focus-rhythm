@@ -123,3 +123,10 @@ There is one L2-regularised logistic-regression head per signal: importance (3-c
 - The model is linear and has no world knowledge, so it can be fooled by unusual phrasing.
 - On-device personalization is a transparent bias layer, not retraining.
 - Improving the model requires collecting consented, labelled real data. That has not been done.
+
+
+## Deployed-engine evaluation and leakage check (Kotlin)
+
+`./gradlew :prediction:test --tests '*RoutingEvaluationTest*'` runs the deployed `NotificationDecisionEngine` (model + safety + guard layer) over the held-out test split and writes `ml/reports/engine_routing_eval.md`: ALLOW/HOLD/REVIEW confusion matrix, precision and recall, false-HOLD of important and urgent messages, review rate of ambiguous messages, slices for links, Hinglish and fake-urgency promotions, the link analyzer's matrix against the dataset's link labels, and a near-duplicate check between train and test. It does not retrain or change the model, golden vectors or thresholds.
+
+Known limits: the data is template-generated; the split is grouped by template (0 shared templates), but a few test rows are near-identical to training rows from other templates (see the report); Hinglish is 47 test rows; no real notifications, no other languages, no OEM-redacted samples. The link analyzer moved to Kotlin-only rules (`LinkAnalyzerTest`); `attune_features.link_safety` is the older Python rule set and is no longer mirrored, so `golden_vectors.json` only constrains whether a text *has* a link. Retraining with `train.py` would regenerate those files; it was deliberately not run.

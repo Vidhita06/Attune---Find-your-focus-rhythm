@@ -52,10 +52,43 @@ data class NotificationDecision(
 }
 
 enum class RuleKind { APP, CONTACT, KEYWORD, CATEGORY }
-enum class RuleAction { ALLOW, DEFER }
+/**
+ * Per-sender / per-rule behaviour, chosen explicitly by the user:
+ *  ALLOW    = "Always allow": reaches you during focus (safety rules still run first for everything else).
+ *  PRIORITY = "Priority sender": never held on model evidence; ordinary messages stay visible for review, nothing is called an emergency.
+ *  DEFER    = "Defer eligible distractions": held when the model is confident and no safety signal applies.
+ *  (no rule) = Normal.
+ */
+enum class RuleAction { ALLOW, PRIORITY, DEFER }
 data class UserRule(val id: String, val kind: RuleKind, val value: String, val action: RuleAction, val label: String = value)
 
 enum class OutsideFocus { IGNORE, OBSERVE }
+
+/**
+ * Every tunable of the routing decision in one place (model thresholds ship inside the model file and are chosen on its validation
+ * split; see RoutingThresholds). The defaults are conservative: when evidence is thin the answer is REVIEW, which keeps the original visible.
+ */
+data class DecisionPolicy(
+    /** This many messages (including the current one) from one conversation inside [burstWindowMs] turn a HOLD into REVIEW. */
+    val burstReviewCount: Int = 3,
+    val burstWindowMs: Long = 120_000L,
+    /** If Attune held a message from this conversation within this time, the next one needs only [followUpReviewCount] messages to be reviewed. */
+    val heldFollowUpWindowMs: Long = 300_000L,
+    val followUpReviewCount: Int = 2,
+    /** A HIGH_RISK link turns a HOLD into REVIEW so the warning is seen. It never turns anything into HOLD and never changes importance scores. */
+    val reviewOnHighRiskLink: Boolean = true,
+    /**
+     * In clearly low-value app categories (social feed, short video, games, shopping, promotions, entertainment, news) a model that is merely
+     * unsure (low top-class confidence) holds the notification when it still reads as distracting and shows no sign of being important
+     * (P(high importance) below the model's review threshold). Messaging, email, calls and unknown apps are never affected.
+     */
+    val holdUnsureLowValue: Boolean = true,
+    /** Android notification categories that mean a time-bound item; never held on model evidence alone. */
+    val reviewAndroidCategories: Set<String> = setOf("reminder", "event"),
+    /** Plain-language retention for stored notification text. */
+    val textRetentionHours: Int = 24,
+    val maxPendingTextDays: Int = 7
+)
 
 data class DecisionSettings(
     val aiMode: Boolean,
